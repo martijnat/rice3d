@@ -39,14 +39,27 @@ zoomfactor = min(width,height)
 backgroundchar = " "
 engine_version = "0.6"
 
-# higher number -> harder shadows border
-shadow_sharpness = 1.1
-# Higher number -> darker
-shadow_intensity = 0.2
+
+smooth_shading = True
+
+draw_faces = True
+draw_wireframe = False
 
 
-ascii_gradient = "░▒▓█"
+ascii_gradient = " ░▒▓█"
 # ascii_gradient = ".:;+=xX$&"
+
+def char_from_color(v,min_v = -1,mav_v = 1):
+
+    # go from range min_v,mav_v to [0,1]
+    d = (v - min_v) / (mav_v - min_v)
+
+    gi =int(d*(len(ascii_gradient))-0.5)
+    if gi >= len(ascii_gradient):
+        gi = len(ascii_gradient)-1
+    elif gi<0:
+        gi = 0
+    return ascii_gradient[gi]
 
 draw_borders = False
 
@@ -89,7 +102,7 @@ class Keypress():
     u      =  False
     i      =  False
 
-white = "W"
+white = 1
 
 class Point():
     def __init__(self,x,y,z,color=white):
@@ -145,7 +158,6 @@ def point_relative_to_camera(point,camera):
     x = point.x - camera.x
     y = point.y - camera.y
     z = point.z - camera.z
-    color = point.color
 
     # shorthands so the projection formula is easier to read
     sx,cx,sy,cy,sz,cz = (sin(camera.u),
@@ -162,8 +174,21 @@ def point_relative_to_camera(point,camera):
                sx* (cy*z + sy*(sz*y + cz*x)) + cx*(cz*y-sz*x),
                cx* (cy*z + sy*(sz*y + cz*x)) - sx*(cz*y-sz*x))
 
+
+
+    # add depth perception
+
+    # get a z > 0 to avoid diving by zero
+    z_tmp = max(0.01,z+2) * 0.5
+    # multiple by z axis to get perspective
+    x*= z_tmp
+    y*= z_tmp
+
+
     # to zoom in/out we multiply each coordinte by a factor
     x,y,z = map(lambda a:a * camera.zoom,[x,y,z])
+
+    color = point.color * (z / camera.zoom)
 
     return Point(x,y,z,color)
 
@@ -176,17 +201,21 @@ def draw_pixel(_x,_y,color=white):
     if (x >= 0 and x < width) and (y >= 0 and y < height):
         screen[y][x] = color
 
-def draw_line(x1,y1,x2,y2,color=white):
+def draw_line(x1,y1,x2,y2,c1,c2):
     steps = max(abs(x1-x2),abs(y1-y2))
+    if not smooth_shading:
+        c1 = (c1+c2)/2
+        c2 = c1
     if steps>0:
         for s in range(int(steps+1)):
             r1 = s/steps
             r2 = 1-r1
             x = r1*x1 + r2*x2
             y = r1*y1 + r2*y2
-            draw_pixel(x,y,color)
+            char = char_from_color(c1*r1 + c2*r2)
+            draw_pixel(x,y,char)
     else:
-        draw_pixel(x1,y2,color)
+        draw_pixel(x1,y2,char_from_color(c1))
 
 def draw_line_relative(line,camera):
     p1 = point_relative_to_camera(line.p1,camera)
@@ -199,20 +228,13 @@ def draw_triangle_relative(triangle,camera):
     p2 = point_relative_to_camera(triangle.p2,camera)
     p3 = point_relative_to_camera(triangle.p3,camera)
 
-    # simply use the z axis depth for shading
-    d = (1 + (p1.z+p2.z+p3.z)/3) / camera.zoom
+    if not smooth_shading:
+        # make all 3 points the same color
+        c = (p1.color+p2.color+p3.color)/3
+        p1.color = c
+        p2.color = c
+        p2.color = c
 
-    gi =int(d*len(ascii_gradient))
-    if gi >= len(ascii_gradient):
-        gi = len(ascii_gradient)-1
-    elif gi<0:
-        gi = 0
-
-    # triangle color
-    c = ascii_gradient[gi]
-    # edge color (change for wireframe render)
-    # lc = ascii_gradient[gi//2]
-    lc = c
 
     p_left,p_mid,p_right = sorted([p1,p2,p3],key = lambda z:z.x)
 
@@ -223,7 +245,7 @@ def draw_triangle_relative(triangle,camera):
 
     y_new = (1-x_ratio)*p_left.y + (x_ratio)*p_right.y
 
-    p_new = Point(p_mid.x,y_new,p_mid.z)
+    p_new = Point(p_mid.x,y_new,p_mid.z,(p_left.color + p_right.color)/2)
 
     p_up = p_new
     p_down = p_mid
@@ -231,32 +253,58 @@ def draw_triangle_relative(triangle,camera):
     if y_new < p_mid.y:
         p_up,p_down=p_down,p_up
 
-    # Draw left part of triangle
-    if p_left.x < p_up.x:
-        slope1 = (p_up.y - p_left.y)/(p_up.x - p_left.x)
-        slope2 = (p_down.y - p_left.y)/(p_up.x - p_left.x)
-        y_1 = p_left.y
-        y_2 = p_left.y
-        for x in range(int(p_left.x),int(p_up.x)):
-            draw_line(x,y_1,x,y_2,c)
-            y_1 += slope1
-            y_2 += slope2
+    if draw_faces:
+        # Draw left part of triangle
+        if p_left.x < p_up.x:
+            slope1 = (p_up.y - p_left.y)/(p_up.x - p_left.x)
+            slope2 = (p_down.y - p_left.y)/(p_up.x - p_left.x)
+            y_1 = p_left.y
+            y_2 = p_left.y
 
-    # Draw right part of triangle
-    if p_up.x < p_right.x:
-        slope1 = (p_right.y - p_up.y)/(p_right.x - p_up.x)
-        slope2 = (p_right.y - p_down.y)/(p_right.x - p_up.x)
-        y_1 = p_up.y
-        y_2 = p_down.y
-        for x in range(int(p_up.x),int(p_right.x)):
-            draw_line(x,y_1,x,y_2,c)
-            y_1 += slope1
-            y_2 += slope2
+            color_up = p_left.color
+            color_down = p_left.color
+            dcolor_up = (p_up.color - p_left.color)/(p_up.x - p_left.x)
+            dcolor_down = (p_down.color - p_left.color)/(p_down.x - p_left.x)
 
-    draw_line(p_left.x  ,p_left.y,  p_up.x, p_up.y, lc)
-    draw_line(p_right.x ,p_right.y, p_up.x, p_up.y, lc)
-    draw_line(p_left.x  ,p_left.y,  p_down.x, p_down.y, lc)
-    draw_line(p_right.x ,p_right.y, p_down.x, p_down.y, lc)
+            for x in range(int(p_left.x),int(p_up.x)):
+                draw_line(x,y_1,x,y_2,color_up,color_down)
+                y_1 += slope1
+                y_2 += slope2
+                color_up += dcolor_up
+                color_down += dcolor_down
+
+        # Draw right part of triangle
+        if p_up.x < p_right.x:
+            slope1 = (p_right.y - p_up.y)/(p_right.x - p_up.x)
+            slope2 = (p_right.y - p_down.y)/(p_right.x - p_up.x)
+            y_1 = p_up.y
+            y_2 = p_down.y
+
+            color_up = p_up.color
+            color_down = p_down.color
+            dcolor_up = (p_up.color - p_right.color)/(p_up.x - p_right.x)
+            dcolor_down = (p_down.color - p_right.color)/(p_down.x -p_right.x)
+
+            for x in range(int(p_up.x),int(p_right.x)):
+                draw_line(x,y_1,x,y_2,color_up,color_down)
+                y_1 += slope1
+                y_2 += slope2
+                color_up += dcolor_up
+                color_down += dcolor_down
+
+    if draw_wireframe:
+        draw_line(p_left.x  ,p_left.y,  p_up.x, p_up.y, 0,0)
+        draw_line(p_right.x ,p_right.y, p_up.x, p_up.y, 0,0)
+        draw_line(p_left.x  ,p_left.y,  p_down.x, p_down.y, 0,0)
+        draw_line(p_right.x ,p_right.y, p_down.x, p_down.y, 0,0)
+    else:
+        draw_line(p_left.x  ,p_left.y,  p_up.x, p_up.y, p_left.color, p_up.color)
+        draw_line(p_right.x ,p_right.y, p_up.x, p_up.y, p_right.color, p_up.color)
+        draw_line(p_left.x  ,p_left.y,  p_down.x, p_down.y, p_left.color, p_down.color)
+        draw_line(p_right.x ,p_right.y, p_down.x, p_down.y, p_right.color, p_down.color)
+
+
+
 
 def draw_triangle_relative_buffered(triangle,camera):
     "Collect depth of all triangles, buffer them and draw them in order"
@@ -1273,7 +1321,7 @@ model_tetrahedron = [Triangle(Point(0,-1,1) ,Point(0,-1,-1),Point(-1,1,0)),
                      Triangle(Point(1,1,0)  ,Point(-1,1,0)  ,Point(0,-1,1)),
                      Triangle(Point(1,1,0)  ,Point(-1,1,0)  ,Point(0,-1,-1)),]
 
-cube_point = [Point(x,y,z) for x in [-.8,.8] for y in [-.8,.8] for z in [-.8,.8]]
+cube_point = [Point(x,y,z) for x in [-.6,.6] for y in [-.6,.6] for z in [-.6,.6]]
 model_cube = [Triangle(cube_point[0b000],cube_point[0b001],cube_point[0b010]),
               Triangle(cube_point[0b001],cube_point[0b010],cube_point[0b011]),
               Triangle(cube_point[0b100],cube_point[0b101],cube_point[0b110]),
