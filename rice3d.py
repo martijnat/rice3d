@@ -43,14 +43,14 @@ smooth_shading = True
 
 draw_faces = True
 draw_wireframe = False
+slow_draw = False                # pause after every triangle (debug feature)
 
-
-simple_gradient = ".:;+=xX$&"     # works with simple terminal
+simple_gradient = " .:;+=xX$&"     # works with simple terminal
 unicode_gradient = " ░▒▓█"        # requires unicode support
 c256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(i,i+1,c) for i in range(232,255)\
-                 for c in unicode_gradient] # requires 256 color support
+                 for c in simple_gradient] # requires 256 color support
 
-# chang this is needed
+# change this if needed
 ascii_gradient = c256_gradient
 
 backgroundchar = ascii_gradient[0]
@@ -251,7 +251,7 @@ def draw_triangle_relative(triangle,camera):
 
     y_new = (1-x_ratio)*p_left.y + (x_ratio)*p_right.y
 
-    p_new = Point(p_mid.x,y_new,p_mid.z,(p_left.color + p_right.color)/2)
+    p_new = Point(p_mid.x,y_new,p_mid.z,(p_left.color * x_ratio + p_right.color * (1-x_ratio)))
 
     p_up = p_new
     p_down = p_mid
@@ -331,6 +331,8 @@ def draw_buffers(camera):
     # draw from back to front
     for d,t in triangle_buffer:
             draw_triangle_relative(t,camera)
+            if slow_draw:
+                sys.stdout.write("\033[0;0H"+"\n".join(["".join(line) for line in screen]))
 
     triangle_buffer = []
 
