@@ -207,7 +207,7 @@ def draw_line(x1,y1,x2,y2,c1,c2):
         c1 = (c1+c2)/2
         c2 = c1
     if steps>0:
-        for s in range(int(steps+1)):
+        for s in range(int(steps+2)):
             r1 = s/steps
             r2 = 1-r1
             x = r1*x1 + r2*x2
@@ -297,13 +297,6 @@ def draw_triangle_relative(triangle,camera):
         draw_line(p_right.x ,p_right.y, p_up.x, p_up.y, 0,0)
         draw_line(p_left.x  ,p_left.y,  p_down.x, p_down.y, 0,0)
         draw_line(p_right.x ,p_right.y, p_down.x, p_down.y, 0,0)
-    else:
-        draw_line(p_left.x  ,p_left.y,  p_up.x, p_up.y, p_left.color, p_up.color)
-        draw_line(p_right.x ,p_right.y, p_up.x, p_up.y, p_right.color, p_up.color)
-        draw_line(p_left.x  ,p_left.y,  p_down.x, p_down.y, p_left.color, p_down.color)
-        draw_line(p_right.x ,p_right.y, p_down.x, p_down.y, p_right.color, p_down.color)
-
-
 
 
 def draw_triangle_relative_buffered(triangle,camera):
