@@ -4,6 +4,13 @@ Animate 3d models in your terminal by rendering them using ascii characters
 
 ![Screenshot](screenshot.png)
 
+If your terminal
+supports
+[block elements](https://en.wikipedia.org/wiki/Block_Elements) you can
+get gray scale images.
+
+![Screenshot2](unicode.png)
+
 ![Video](example.webm)
 
 # Usage

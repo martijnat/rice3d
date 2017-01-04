@@ -45,8 +45,8 @@ shadow_sharpness = 1.1
 shadow_intensity = 0.2
 
 
-ascii_gradient = "░▒▓█"
-# ascii_gradient = ".:;+=xX$&"
+# ascii_gradient = "░▒▓█"
+ascii_gradient = ".:;+=xX$&"
 
 draw_borders = False
 
