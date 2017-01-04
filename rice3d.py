@@ -45,8 +45,8 @@ shadow_sharpness = 1.1
 shadow_intensity = 0.2
 
 
-# ascii_gradient = "░▒▓█"
-ascii_gradient = ".:;+=xX$&"
+ascii_gradient = "░▒▓█"
+# ascii_gradient = ".:;+=xX$&"
 
 draw_borders = False
 
@@ -293,7 +293,7 @@ def engine_step():
     global height
     p = "\n".join(["".join(line) for line in screen])
     screen = newscreen(width,height,backgroundchar)
-    return p
+    return "\033[0;0H"+p
 
 
 model_suzanne = [
@@ -1357,6 +1357,7 @@ if len(sys.argv)>1 :
 else:
     model = random.choice(models)
 
+os.system("clear")
 for t in all_numbers():
 
     camera.u = 2*pi * 0.001 * t
@@ -1367,7 +1368,7 @@ for t in all_numbers():
         draw_triangle_relative_buffered(_,camera)
 
     draw_buffers(camera)
-    p = engine_step()
-    os.system("clear")
-    print(p)
+    next_frame = engine_step()
+    sys.stdout.write(next_frame)
+    # os.system("clear")          # clearing the screen every frame causes flickering
     time.sleep(1/60)
