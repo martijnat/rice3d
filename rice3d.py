@@ -36,7 +36,6 @@ except:
 
 zoomfactor = min(width,height)
 
-backgroundchar = " "
 engine_version = "0.6"
 
 
@@ -46,10 +45,17 @@ draw_faces = True
 draw_wireframe = False
 
 
-ascii_gradient = " ░▒▓█"
-# ascii_gradient = ".:;+=xX$&"
+simple_gradient = ".:;+=xX$&"     # works with simple terminal
+unicode_gradient = " ░▒▓█"        # requires unicode support
+c256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(i,i+1,c) for i in range(232,255)\
+                 for c in unicode_gradient] # requires 256 color support
 
-def char_from_color(v,min_v = -1,mav_v = 1):
+# chang this is needed
+ascii_gradient = c256_gradient
+
+backgroundchar = ascii_gradient[0]
+
+def char_from_color(v,min_v = -0.8,mav_v = 0.8):
 
     # go from range min_v,mav_v to [0,1]
     d = (v - min_v) / (mav_v - min_v)
@@ -1386,23 +1392,22 @@ def all_numbers(n=0):
         yield n
         n += 1
 
-models = [model_suzanne,
-          model_tetrahedron,
-          model_cube,
-          model_octahedron,
-          model_icosahedron,
-          model_dodecahedron]
+builtin_models = [model_suzanne,
+                  model_tetrahedron,
+                  model_cube,
+                  model_octahedron,
+                  model_icosahedron,
+                  model_dodecahedron]
 
 if len(sys.argv)>1 :
-    model = models[int(sys.argv[1])]
+    model = builtin_models[int(sys.argv[1])]
 else:
-    model = random.choice(models)
+    model = random.choice(builtin_models)
 
 sys.stdout.write("\033[1J")     # escape sequence to clear screen
 try:
     for t in all_numbers():
-
-        camera.u = 2*pi * 0.001 * t
+        camera.u = 2*pi * -0.001 * t
         camera.v = 2*pi * 0.01 * t
         camera.w = 2*pi * 0.0001 * t
 
@@ -1416,4 +1421,4 @@ try:
 except KeyboardInterrupt:
     pass
 
-sys.stdout.write("\033[1J")     # clear screen again
+# sys.stdout.write("\033[1J")     # clear screen again
