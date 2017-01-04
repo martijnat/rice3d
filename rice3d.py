@@ -1405,18 +1405,22 @@ if len(sys.argv)>1 :
 else:
     model = random.choice(models)
 
-os.system("clear")
-for t in all_numbers():
+sys.stdout.write("\033[1J")     # escape sequence to clear screen
+try:
+    for t in all_numbers():
 
-    camera.u = 2*pi * 0.001 * t
-    camera.v = 2*pi * 0.01 * t
-    camera.w = 2*pi * 0.0001 * t
+        camera.u = 2*pi * 0.001 * t
+        camera.v = 2*pi * 0.01 * t
+        camera.w = 2*pi * 0.0001 * t
 
-    for _ in model:
-        draw_triangle_relative_buffered(_,camera)
+        for _ in model:
+            draw_triangle_relative_buffered(_,camera)
 
-    draw_buffers(camera)
-    next_frame = engine_step()
-    sys.stdout.write(next_frame)
-    # os.system("clear")          # clearing the screen every frame causes flickering
-    time.sleep(1/60)
+        draw_buffers(camera)
+        next_frame = engine_step()
+        sys.stdout.write(next_frame)
+        time.sleep(1/60)
+except KeyboardInterrupt:
+    pass
+
+sys.stdout.write("\033[1J")     # clear screen again
