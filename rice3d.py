@@ -26,11 +26,11 @@ import time
 import shutil
 
 
-size = width, height = 80, 23
+size = width, height = 80, 24
 
 try:
     columns, rows = shutil.get_terminal_size((80, 20))
-    size = width, height = columns ,rows -1
+    size = width, height = columns ,rows
 except:
     pass
 
@@ -1401,8 +1401,14 @@ builtin_models = [model_suzanne,
                   model_icosahedron,
                   model_dodecahedron]
 
+
+def load_obj(filename):
+    content = open(filename).read()
+    return [Triangle(Point(0,0,0),Point(0,1,0),Point(0,0,1))]
+
+
 if len(sys.argv)>1 :
-    model = builtin_models[int(sys.argv[1])]
+    model = load_obj(sys.argv[1])
 else:
     model = random.choice(builtin_models)
 
