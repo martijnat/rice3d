@@ -43,7 +43,7 @@ smooth_shading = True
 draw_faces     = True
 draw_wireframe = not draw_faces
 slow_draw      = False    # pause after every triangle (debug feature)
-borderwidth    = 0        # 0 means no border
+borderwidth    = 1        # 0 means no border
 
 
 ascii_gradient = " .:;+=xX$&"     # works with simple terminal
@@ -74,11 +74,14 @@ else:
 
 
 backgroundchar = color_gradient[0]
+draw_dist_min = -1
+draw_dist_max = 1
 
 def char_from_color(v,min_v = -0.8,mav_v = 0.8):
-
+    global draw_dist_min
+    global draw_dist_max
     # go from range min_v,mav_v to [0,1]
-    d = (v - min_v) / (mav_v - min_v)
+    d = (v - draw_dist_min) / (draw_dist_max - draw_dist_min)
 
     gi =int(d*(len(color_gradient))-0.5)
     if gi >= len(color_gradient):
@@ -208,7 +211,7 @@ def point_relative_to_camera(point,camera):
     # add depth perception
 
     # get a z > 0 to avoid diving by zero
-    z_tmp = max(0.01,z+2) * 0.5
+    z_tmp = max(0.01,z+draw_dist_max) * 0.5
     # multiple by z axis to get perspective
     x*= z_tmp
     y*= z_tmp
@@ -449,7 +452,10 @@ builtin_models = [model_tetrahedron,
                   model_dodecahedron]
 
 
-def load_obj(filename):
+def load_obj(filename,camera):
+    global draw_dist_min
+    global draw_dist_max
+
     try:
         obj_file = open(filename)
     except FileNotFoundError:
@@ -458,6 +464,7 @@ def load_obj(filename):
 
     vertices = []
     faces = []
+    max_dist_from_center = 0.0
 
     for line in open(filename).readlines():
         c = line[0]
@@ -469,6 +476,9 @@ def load_obj(filename):
             else:
                 coords = list(map(float,line[1:-1].split()))
                 v = Point(coords[0],coords[1],coords[2])
+                dist = sqrt(sum(map(lambda x:x*x,[coords[0],coords[1],coords[2]])))
+                if dist > max_dist_from_center:
+                    max_dist_from_center = dist
                 vertices.append(v)
         elif c == "f":
             if "/" in line: # check for a/b/c syntax
@@ -489,11 +499,15 @@ def load_obj(filename):
         else:
             print("Ignoring line (%s)"%c)
 
+    # adjust camera for large/small models
+    draw_dist_min = -max_dist_from_center
+    draw_dist_max = max_dist_from_center
+    camera.zoom /= draw_dist_max
     return [f for f in faces]
 
 
 if len(sys.argv)>1 :
-    model = load_obj(sys.argv[1])
+    model = load_obj(sys.argv[1],camera)
     os.system("clear")
 else:
     model = random.choice(builtin_models)
