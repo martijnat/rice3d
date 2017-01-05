@@ -277,9 +277,6 @@ def draw_triangle_relative(triangle,camera):
     p_up = p_new
     p_down = p_mid
 
-    if y_new < p_mid.y:
-        p_up,p_down=p_down,p_up
-
     if draw_faces:
         # Draw left part of triangle
         if p_left.x < p_up.x:
