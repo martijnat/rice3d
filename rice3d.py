@@ -293,17 +293,17 @@ def draw_triangle_relative(triangle,camera):
             y_1 = p_left.y
             y_2 = p_left.y
 
-            color_up = p_left.color
-            color_down = p_left.color
-            dcolor_up = (p_up.color - p_left.color)/(p_up.x - p_left.x)
-            dcolor_down = (p_down.color - p_left.color)/(p_down.x - p_left.x)
+        color_up = p_left.color
+        color_down = p_left.color
+        dcolor_up = (p_up.color - p_left.color)/(p_up.x - p_left.x)
+        dcolor_down = (p_down.color - p_left.color)/(p_down.x - p_left.x)
 
-            for x in range(int(p_left.x),int(p_up.x)):
-                draw_line(x,y_1,x,y_2,color_up,color_down)
-                y_1 += slope1
-                y_2 += slope2
-                color_up += dcolor_up
-                color_down += dcolor_down
+        for x in range(int(p_left.x),int(p_up.x)):
+            draw_line(x,y_1,x,y_2,color_up,color_down)
+            y_1 += slope1
+            y_2 += slope2
+            color_up += dcolor_up
+            color_down += dcolor_down
 
         # Draw right part of triangle
         if p_up.x < p_right.x:
