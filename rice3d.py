@@ -42,32 +42,46 @@ engine_version = "0.6"
 smooth_shading = True
 
 draw_faces = True
-draw_wireframe = False
+draw_wireframe = not draw_faces
 slow_draw = False                # pause after every triangle (debug feature)
+borderwidth = 0                  # 0 means no border
 
-simple_gradient = " .:;+=xX$&"     # works with simple terminal
-unicode_gradient = " ░▒▓█"        # requires unicode support
+
+ascii_gradient = " .:;+=xX$&"     # works with simple terminal
+block_gradient = " ░▒▓█"        # requires unicode support
 c256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(i,i+1,c) for i in range(232,255)\
-                 for c in simple_gradient] # requires 256 color support
+                 for c in ascii_gradient] # requires 256 color support
 
-# change this if needed
-ascii_gradient = c256_gradient
+# set gradient depending on what terminal we are using
+TERM = os.environ['TERM']
 
-backgroundchar = ascii_gradient[0]
+if TERM in ["screen-256color"]:
+    # 256 colors
+    color_gradient = c256_gradient
+elif TERM in ["eterm-color"]:
+    # 8 colors only
+    color_gradient = ascii_gradient
+else:
+    # simplest gradient that workst for sure
+    color_gradient = ascii_gradient
+
+
+
+backgroundchar = color_gradient[0]
 
 def char_from_color(v,min_v = -0.8,mav_v = 0.8):
 
     # go from range min_v,mav_v to [0,1]
     d = (v - min_v) / (mav_v - min_v)
 
-    gi =int(d*(len(ascii_gradient))-0.5)
-    if gi >= len(ascii_gradient):
-        gi = len(ascii_gradient)-1
+    gi =int(d*(len(color_gradient))-0.5)
+    if gi >= len(color_gradient):
+        gi = len(color_gradient)-1
     elif gi<0:
         gi = 0
-    return ascii_gradient[gi]
+    return color_gradient[gi]
 
-draw_borders = False
+
 
 triangle_buffer = []
 
@@ -75,22 +89,25 @@ def newscreen(w,h,c):
     # start with empty grid
     r =[[c for _w in range(w)] for _h in range(h)]
 
-    if draw_borders:
+
+    for d in range(min(borderwidth,h//2)):
         # add left/right border
-        for y in range(h):
-            r[y][0]   = "|"
-            r[y][w-1] = "|"
+        bordercolor = "\033[48;5;232m\033[38;5;4m"
+        clearcode = "\033[0m"
+        for y in range(d,h-d):
+            r[y][w-d-1] = bordercolor + "│"
+            r[y][d]   = bordercolor + "│" + clearcode
 
-            # add top/bottom border
-            for x in range(w):
-                r[0][x]   = "-"
-                r[h-1][x] = "-"
+        # add top/bottom border
+        for x in range(d,w-d):
+            r[d][x]   = bordercolor + "─"
+            r[h-d-1][x] = bordercolor + "─"
 
-                # add corners
-                r[0][0]     = "o"
-                r[h-1][0]   = "o"
-                r[0][w-1]   = "o"
-                r[h-1][w-1] = "o"
+        # add corners
+        r[d][d]     = bordercolor + "┌"
+        r[h-d-1][d]   = bordercolor + "└"
+        r[d][w-d-1]   = bordercolor + "┐"
+        r[h-d-1][w-d-1] = bordercolor + "┘"
 
     return r
 
@@ -299,10 +316,10 @@ def draw_triangle_relative(triangle,camera):
                 color_down += dcolor_down
 
     if draw_wireframe:
-        draw_line(p_left.x  ,p_left.y,  p_up.x, p_up.y, 0,0)
-        draw_line(p_right.x ,p_right.y, p_up.x, p_up.y, 0,0)
-        draw_line(p_left.x  ,p_left.y,  p_down.x, p_down.y, 0,0)
-        draw_line(p_right.x ,p_right.y, p_down.x, p_down.y, 0,0)
+        draw_line(p_left.x  ,p_left.y,  p_up.x, p_up.y, p_left.color,p_up.color)
+        draw_line(p_right.x ,p_right.y, p_up.x, p_up.y, p_right.color,p_up.color)
+        draw_line(p_left.x  ,p_left.y,  p_down.x, p_down.y, p_left.color,p_down.color)
+        draw_line(p_right.x ,p_right.y, p_down.x, p_down.y, p_right.color,p_down.color)
 
 
 def draw_triangle_relative_buffered(triangle,camera):
@@ -453,28 +470,27 @@ def load_obj(filename):
             if "/" in line: # check for a/b/c syntax
                 # vertex_indexes = list(map(lambda x:(int(x) - 1),line[1:-1].split()))
                 indexes = [list(map(int,miniline.split("/")))[0]-1 for miniline in line[2:-1].split()]
-                face = Triangle(vertices[indexes[0]],
-                                vertices[indexes[1]],
-                                vertices[indexes[2]])
-                faces.append(face)
             else:
                 indexes = list(map(lambda x:(int(x) - 1),line[1:-1].split()))
+
+
+            # if there are more than 3 vertices, split the face into triangles
+            for i in range(0,len(indexes)-2):
                 face = Triangle(vertices[indexes[0]],
-                            vertices[indexes[1]],
-                            vertices[indexes[2]])
+                                vertices[indexes[i+1]],
+                                vertices[indexes[i+2]])
                 faces.append(face)
         elif len(line)<=1:
             pass
         else:
             print("Ignoring line (%s)"%c)
 
-    time.sleep(1)
-    c = Point(0,0,0)
     return [f for f in faces]
 
 
 if len(sys.argv)>1 :
     model = load_obj(sys.argv[1])
+    os.system("clear")
 else:
     model = random.choice(builtin_models)
 
