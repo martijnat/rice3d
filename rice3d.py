@@ -52,10 +52,6 @@ c256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(i,i+1,c)\
                  for i in range(232,255)\
                  for c in ascii_gradient] # requires 256 color support
 
-tty_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%([0,8,7,15,15][i],[0,8,7,15,15][i+1],c)\
-                for i in range(4)\
-                for c in block_gradient]
-
 # set gradient depending on what terminal we are using
 TERM = os.environ['TERM']
 
@@ -65,8 +61,8 @@ if TERM in ["screen-256color","xterm-256color"]:
 elif TERM in ["eterm-color"]:
     # 8 colors only
     color_gradient = ascii_gradient
-elif TERM in ["linux"]:
-    color_gradient = tty_gradient
+elif TERM in ["linux"]:          # tty
+    color_gradient = block_gradient
 else:
     # simplest gradient that workst for sure
     color_gradient = ascii_gradient
@@ -101,22 +97,21 @@ def newscreen(w,h,c):
 
     for d in range(min(borderwidth,h//2)):
         # add left/right border
-        bordercolor = "\033[48;5;232m\033[38;5;4m"
-        clearcode = "\033[0m"
+        escapecode      = "\033[48;5;232m\033[38;5;4m%s\033[0m"
         for y in range(d,h-d):
-            r[y][w-d-1] = bordercolor + "│"
-            r[y][d]   = bordercolor + "│" + clearcode
+            r[y][w-d-1] = escapecode%"│"
+            r[y][d]     = escapecode%"│"
 
         # add top/bottom border
         for x in range(d,w-d):
-            r[d][x]   = bordercolor + "─"
-            r[h-d-1][x] = bordercolor + "─"
+            r[d][x]     = escapecode%"─"
+            r[h-d-1][x] = escapecode%"─"
 
         # add corners
-        r[d][d]     = bordercolor + "┌"
-        r[h-d-1][d]   = bordercolor + "└"
-        r[d][w-d-1]   = bordercolor + "┐"
-        r[h-d-1][w-d-1] = bordercolor + "┘"
+        r[d][d]         = escapecode%"┌"
+        r[h-d-1][d]     = escapecode%"└"
+        r[d][w-d-1]     = escapecode%"┐"
+        r[h-d-1][w-d-1] = escapecode%"┘"
 
     return r
 
@@ -169,7 +164,7 @@ def generate_floor(x_start,x_end,y_start,y_end,tile_size=1):
             yield Triangle(p2,p3,p4, (128,128,128))
 
 class Camera():
-    def __init__(self,x=0,y=0,z=0,u=0,v=0,w=0,zoom=0.5):
+    def __init__(self,x=0,y=0,z=0,u=0,v=0,w=0,zoom=0.8):
         self.x = x              # position
         self.y = y
         self.z = z
@@ -293,17 +288,17 @@ def draw_triangle_relative(triangle,camera):
             y_1 = p_left.y
             y_2 = p_left.y
 
-        color_up = p_left.color
-        color_down = p_left.color
-        dcolor_up = (p_up.color - p_left.color)/(p_up.x - p_left.x)
-        dcolor_down = (p_down.color - p_left.color)/(p_down.x - p_left.x)
+            color_up = p_left.color
+            color_down = p_left.color
+            dcolor_up = (p_up.color - p_left.color)/(p_up.x - p_left.x)
+            dcolor_down = (p_down.color - p_left.color)/(p_down.x - p_left.x)
 
-        for x in range(int(p_left.x),int(p_up.x)):
-            draw_line(x,y_1,x,y_2,color_up,color_down)
-            y_1 += slope1
-            y_2 += slope2
-            color_up += dcolor_up
-            color_down += dcolor_down
+            for x in range(int(p_left.x),int(p_up.x)):
+                draw_line(x,y_1,x,y_2,color_up,color_down)
+                y_1 += slope1
+                y_2 += slope2
+                color_up += dcolor_up
+                color_down += dcolor_down
 
         # Draw right part of triangle
         if p_up.x < p_right.x:
@@ -314,8 +309,8 @@ def draw_triangle_relative(triangle,camera):
 
             color_up = p_up.color
             color_down = p_down.color
-            dcolor_up = (p_up.color - p_right.color)/(p_up.x - p_right.x)
-            dcolor_down = (p_down.color - p_right.color)/(p_down.x -p_right.x)
+            dcolor_up = (p_right.color - p_up.color)/(p_right.x - p_up.x)
+            dcolor_down = (p_right.color - p_down.color)/(p_right.x -p_down.x)
 
             for x in range(int(p_up.x),int(p_right.x)):
                 draw_line(x,y_1,x,y_2,color_up,color_down)
@@ -476,7 +471,7 @@ def load_obj(filename,camera):
             else:
                 coords = list(map(float,line[1:-1].split()))
                 v = Point(coords[0],coords[1],coords[2])
-                dist = sqrt(sum(map(lambda x:x*x,[coords[0],coords[1],coords[2]])))
+                dist = max(map(abs,[coords[0],coords[1],coords[2]]))
                 if dist > max_dist_from_center:
                     max_dist_from_center = dist
                 vertices.append(v)
