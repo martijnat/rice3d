@@ -19,12 +19,11 @@ from math import sin,cos,atan,atan2,sqrt
 from math import sin,cos,pi
 
 import math
-import random
-import sys
 import os
-import time
+import random
 import shutil
-
+import sys
+import time
 
 size = width, height = 80, 24
 
@@ -41,26 +40,33 @@ engine_version = "0.6"
 
 smooth_shading = True
 
-draw_faces = True
+draw_faces     = True
 draw_wireframe = not draw_faces
-slow_draw = False                # pause after every triangle (debug feature)
-borderwidth = 0                  # 0 means no border
+slow_draw      = False    # pause after every triangle (debug feature)
+borderwidth    = 0        # 0 means no border
 
 
 ascii_gradient = " .:;+=xX$&"     # works with simple terminal
 block_gradient = " ░▒▓█"        # requires unicode support
-c256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(i,i+1,c) for i in range(232,255)\
+c256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(i,i+1,c)\
+                 for i in range(232,255)\
                  for c in ascii_gradient] # requires 256 color support
+
+tty_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%([0,8,7,15,15][i],[0,8,7,15,15][i+1],c)\
+                for i in range(4)\
+                for c in block_gradient]
 
 # set gradient depending on what terminal we are using
 TERM = os.environ['TERM']
 
-if TERM in ["screen-256color"]:
+if TERM in ["screen-256color","xterm-256color"]:
     # 256 colors
     color_gradient = c256_gradient
 elif TERM in ["eterm-color"]:
     # 8 colors only
     color_gradient = ascii_gradient
+elif TERM in ["linux"]:
+    color_gradient = tty_gradient
 else:
     # simplest gradient that workst for sure
     color_gradient = ascii_gradient
@@ -431,8 +437,6 @@ model_dodecahedron = [Triangle(p1,p2,p3) for (p1,p2,p3,p4,p5) in dodecahedron_po
 
 camera = Camera()
 
-camera.u = -0.5
-
 def all_numbers(n=0):
     while True:
         yield n
@@ -507,7 +511,7 @@ try:
         draw_buffers(camera)
         next_frame = engine_step()
         sys.stdout.write(next_frame)
-        time.sleep(1/20)
+        time.sleep(1/60)
 except KeyboardInterrupt:
     pass
 
