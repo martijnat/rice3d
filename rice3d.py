@@ -37,19 +37,22 @@ zoomfactor = min(width,height)
 
 engine_version = "0.6"
 
-
-smooth_shading = True
-
 draw_faces     = True
 draw_wireframe = not draw_faces
-slow_draw      = False    # pause after every triangle (debug feature)
-borderwidth    = 1        # 0 means no border
+slow_draw      = False     # pause after every triangle (debug feature)
+borderwidth    = 0        # 0 means no border
 
 
 ascii_gradient = " .:;+=xX$&"     # works with simple terminal
 block_gradient = " ░▒▓█"        # requires unicode support
 c256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(i,i+1,c)\
                  for i in range(232,255)\
+                 for c in ascii_gradient] # requires 256 color support
+
+grays = [0, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254]
+
+c256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(grays[i],grays[i+1],c)\
+                 for i in range(23)\
                  for c in ascii_gradient] # requires 256 color support
 
 # set gradient depending on what terminal we are using
@@ -73,7 +76,7 @@ backgroundchar = color_gradient[0]
 draw_dist_min = -1
 draw_dist_max = 1
 
-def char_from_color(v,min_v = -0.8,mav_v = 0.8):
+def char_from_color(v):
     global draw_dist_min
     global draw_dist_max
     # go from range min_v,mav_v to [0,1]
@@ -164,7 +167,7 @@ def generate_floor(x_start,x_end,y_start,y_end,tile_size=1):
             yield Triangle(p2,p3,p4, (128,128,128))
 
 class Camera():
-    def __init__(self,x=0,y=0,z=0,u=0,v=0,w=0,zoom=0.8):
+    def __init__(self,x=0,y=0,z=0,u=0,v=0,w=0,zoom=1):
         self.x = x              # position
         self.y = y
         self.z = z
@@ -211,7 +214,6 @@ def point_relative_to_camera(point,camera):
     x*= z_tmp
     y*= z_tmp
 
-
     # to zoom in/out we multiply each coordinte by a factor
     x,y,z = map(lambda a:a * camera.zoom,[x,y,z])
 
@@ -230,9 +232,6 @@ def draw_pixel(_x,_y,color=white):
 
 def draw_line(x1,y1,x2,y2,c1,c2):
     steps = max(abs(x1-x2),abs(y1-y2))
-    if not smooth_shading:
-        c1 = (c1+c2)/2
-        c2 = c1
     if steps>0:
         for s in range(int(steps+2)):
             r1 = s/steps
@@ -250,20 +249,25 @@ def draw_line_relative(line,camera):
     draw_line(p1.x,p1.y,p2.x,p2.y,line.color)
 
 def draw_triangle_relative(triangle,camera):
+    global height,width
     # get three point of triangle
     p1 = point_relative_to_camera(triangle.p1,camera)
     p2 = point_relative_to_camera(triangle.p2,camera)
     p3 = point_relative_to_camera(triangle.p3,camera)
 
-    if not smooth_shading:
-        # make all 3 points the same color
-        c = (p1.color+p2.color+p3.color)/3
-        p1.color = c
-        p2.color = c
-        p2.color = c
+    # if triangle is outside of screen, don't bother drawing it
+    if max([p1.x,p2.x,p3.x]) < -width/2 or\
+       min([p1.x,p2.x,p3.x]) > width/2 or\
+       max([p1.y,p2.y,p3.y]) < -height/2 or\
+       min([p1.y,p2.y,p3.y]) > height/2 or\
+       min([p1.z,p2.z,p3.z]) < draw_dist_min:
+        return
+
+
+
+
 
     if draw_faces:
-
         edge_length = int(max(map((lambda p:max(map(abs,[(p[0].x - p[1].x),(p[0].y - p[1].y)]))),
                                   [(p1,p2),(p2,p3),(p3,p1)])))
 
@@ -461,9 +465,9 @@ def load_obj(filename,camera):
             print("Ignoring line (%s)"%c)
 
     # adjust camera for large/small models
-    draw_dist_min = -max_dist_from_center
+    draw_dist_min = 0
     draw_dist_max = max_dist_from_center
-    camera.zoom /= draw_dist_max
+    camera.zoom /= draw_dist_max**2
     return [f for f in faces]
 
 
@@ -471,9 +475,10 @@ if len(sys.argv)>1 :
     model = load_obj(sys.argv[1],camera)
     os.system("clear")
 else:
-    model = random.choice(builtin_models)
+    model = model_dodecahedron
 
 sys.stdout.write("\033[1J")     # escape sequence to clear screen
+sys.stdout.write("\033[?25l")   # hide cursor
 try:
     for t in all_numbers():
         camera.u = 2*pi * -0.001 * t
@@ -491,3 +496,4 @@ except KeyboardInterrupt:
     pass
 
 # sys.stdout.write("\033[1J")     # clear screen again
+sys.stdout.write("\033[?25h")   # show cursor again
