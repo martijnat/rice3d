@@ -40,7 +40,7 @@ engine_version = "0.6"
 
 smooth_shading = True
 
-draw_faces     = True
+draw_faces     = False
 draw_wireframe = not draw_faces
 slow_draw      = False    # pause after every triangle (debug feature)
 borderwidth    = 1        # 0 means no border
@@ -317,10 +317,9 @@ def draw_triangle_relative(triangle,camera):
                 color_down += dcolor_down
 
     if draw_wireframe:
-        draw_line(p_left.x  ,p_left.y,  p_up.x, p_up.y, p_left.color,p_up.color)
-        draw_line(p_right.x ,p_right.y, p_up.x, p_up.y, p_right.color,p_up.color)
-        draw_line(p_left.x  ,p_left.y,  p_down.x, p_down.y, p_left.color,p_down.color)
-        draw_line(p_right.x ,p_right.y, p_down.x, p_down.y, p_right.color,p_down.color)
+        draw_line(p_left.x  ,p_left.y,  p_mid.x,  p_mid.y,   p_left.color,  p_mid.color)
+        draw_line(p_right.x ,p_right.y, p_mid.x,  p_mid.y,   p_right.color, p_mid.color)
+        draw_line(p_left.x  ,p_left.y,  p_right.x, p_right.y, p_left.color,  p_right.color)
 
 
 def draw_triangle_relative_buffered(triangle,camera):
