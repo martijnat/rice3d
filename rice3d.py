@@ -39,8 +39,9 @@ engine_version = "0.6"
 
 draw_faces     = True
 draw_wireframe = not draw_faces
-slow_draw      = False     # pause after every triangle (debug feature)
-borderwidth    = 0        # 0 means no border
+debug_draw     = False
+borderwidth    = 0
+target_fps     = 60
 
 
 ascii_gradient = " .:;+=xX$&"     # works with simple terminal
@@ -322,7 +323,7 @@ def draw_buffers(camera):
     # draw from back to front
     for d,t in triangle_buffer:
             draw_triangle_relative(t,camera)
-            if slow_draw:
+            if debug_draw:
                 sys.stdout.write("\033[0;0H"+"\n".join(["".join(line) for line in screen]))
 
     triangle_buffer = []
@@ -480,6 +481,7 @@ else:
 sys.stdout.write("\033[1J")     # escape sequence to clear screen
 sys.stdout.write("\033[?25l")   # hide cursor
 try:
+    old_time = time.time()
     for t in all_numbers():
         camera.u = 2*pi * -0.001 * t
         camera.v = 2*pi * 0.01 * t
@@ -490,8 +492,11 @@ try:
 
         draw_buffers(camera)
         next_frame = engine_step()
+        new_time = time.time()
+        diff_time = new_time-old_time
+        old_time = new_time
         sys.stdout.write(next_frame)
-        time.sleep(1/60)
+        time.sleep(max(0,(1/target_fps)-diff_time))
 except KeyboardInterrupt:
     pass
 
