@@ -43,7 +43,6 @@ debug_draw     = False
 borderwidth    = 0
 target_fps     = 60
 
-
 ascii_gradient = " .:;+=xX$&"     # works with simple terminal
 block_gradient = " ░▒▓█"        # requires unicode support
 c256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(i,i+1,c)\
@@ -59,7 +58,7 @@ c256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(grays[i],grays[i+1],c)\
 # set gradient depending on what terminal we are using
 TERM = os.environ['TERM']
 
-if TERM in ["screen-256color","xterm-256color"]:
+if TERM in ["screen-256color","xterm-256color","xterm"]:
     # 256 colors
     color_gradient = c256_gradient
 elif TERM in ["eterm-color"]:
@@ -219,6 +218,10 @@ def point_relative_to_camera(point,camera):
     x,y,z = map(lambda a:a * camera.zoom,[x,y,z])
 
     color = point.color * (z / camera.zoom)
+
+    # compensate for non-square fonts
+
+    x *= 1.6
 
     return Point(x,y,z,color)
 
