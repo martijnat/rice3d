@@ -40,7 +40,7 @@ engine_version = "0.6"
 
 smooth_shading = True
 
-draw_faces     = False
+draw_faces     = True
 draw_wireframe = not draw_faces
 slow_draw      = False    # pause after every triangle (debug feature)
 borderwidth    = 1        # 0 means no border
@@ -262,64 +262,34 @@ def draw_triangle_relative(triangle,camera):
         p2.color = c
         p2.color = c
 
-
-    p_left,p_mid,p_right = sorted([p1,p2,p3],key = lambda z:z.x)
-
-    try:
-        x_ratio = (p_mid.x-p_left.x)/(p_right.x-p_left.x)
-    except:
-        return
-
-    y_new = (1-x_ratio)*p_left.y + (x_ratio)*p_right.y
-
-    p_new = Point(p_mid.x,y_new,p_mid.z,(p_left.color * x_ratio + p_right.color * (1-x_ratio)))
-
-    p_up = p_new
-    p_down = p_mid
-
     if draw_faces:
-        # Draw left part of triangle
-        if p_left.x < p_up.x:
-            slope1 = (p_up.y - p_left.y)/(p_up.x - p_left.x)
-            slope2 = (p_down.y - p_left.y)/(p_up.x - p_left.x)
-            y_1 = p_left.y
-            y_2 = p_left.y
 
-            color_up = p_left.color
-            color_down = p_left.color
-            dcolor_up = (p_up.color - p_left.color)/(p_up.x - p_left.x)
-            dcolor_down = (p_down.color - p_left.color)/(p_down.x - p_left.x)
+        edge_length = int(max(map((lambda p:max(map(abs,[(p[0].x - p[1].x),(p[0].y - p[1].y)]))),
+                                  [(p1,p2),(p2,p3),(p3,p1)])))
 
-            for x in range(int(p_left.x),int(p_up.x)):
-                draw_line(x,y_1,x,y_2,color_up,color_down)
-                y_1 += slope1
-                y_2 += slope2
-                color_up += dcolor_up
-                color_down += dcolor_down
+        for r in [t/edge_length for t in range(edge_length)]:
+            _x3 = r*p1.x + (1-r)*p2.x
+            _y3 = r*p1.y + (1-r)*p2.y
+            _c3 = r*p1.color + (1-r)*p2.color
 
-        # Draw right part of triangle
-        if p_up.x < p_right.x:
-            slope1 = (p_right.y - p_up.y)/(p_right.x - p_up.x)
-            slope2 = (p_right.y - p_down.y)/(p_right.x - p_up.x)
-            y_1 = p_up.y
-            y_2 = p_down.y
+            _x1 = r*p3.x + (1-r)*p2.x
+            _y1 = r*p3.y + (1-r)*p2.y
+            _c1 = r*p3.color + (1-r)*p2.color
 
-            color_up = p_up.color
-            color_down = p_down.color
-            dcolor_up = (p_right.color - p_up.color)/(p_right.x - p_up.x)
-            dcolor_down = (p_right.color - p_down.color)/(p_right.x -p_down.x)
+            _x2 = r*p1.x + (1-r)*p3.x
+            _y2 = r*p1.y + (1-r)*p3.y
+            _c2 = r*p1.color + (1-r)*p3.color
 
-            for x in range(int(p_up.x),int(p_right.x)):
-                draw_line(x,y_1,x,y_2,color_up,color_down)
-                y_1 += slope1
-                y_2 += slope2
-                color_up += dcolor_up
-                color_down += dcolor_down
+            draw_line(p3.x,p3.y,_x3,_y3,p3.color,_c3)
+            draw_line(p2.x,p2.y,_x2,_y2,p2.color,_c2)
+            draw_line(p1.x,p1.y,_x1,_y1,p1.color,_c1)
+
 
     if draw_wireframe:
-        draw_line(p_left.x  ,p_left.y,  p_mid.x,  p_mid.y,   p_left.color,  p_mid.color)
-        draw_line(p_right.x ,p_right.y, p_mid.x,  p_mid.y,   p_right.color, p_mid.color)
-        draw_line(p_left.x  ,p_left.y,  p_right.x, p_right.y, p_left.color,  p_right.color)
+        draw_line(p1.x ,p1.y, p3.x, p3.y, p1.color, p3.color)
+        draw_line(p2.x ,p2.y, p3.x, p3.y, p2.color, p3.color)
+        draw_line(p1.x ,p1.y, p2.x, p2.y, p1.color, p2.color)
+
 
 
 def draw_triangle_relative_buffered(triangle,camera):
