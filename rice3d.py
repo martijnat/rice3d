@@ -20,7 +20,6 @@ from math import sin,cos,pi
 
 import math
 import os
-import random
 import shutil
 import sys
 import time
@@ -42,18 +41,19 @@ draw_wireframe = not draw_faces
 debug_draw     = False
 borderwidth    = 0
 target_fps     = 60
+single_frame   = False
 
 ascii_gradient = " .:;+=xX$&"     # works with simple terminal
 block_gradient = " ░▒▓█"        # requires unicode support
-c256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(i,i+1,c)\
-                 for i in range(232,255)\
-                 for c in ascii_gradient] # requires 256 color support
-
-grays = [0, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254]
-
+block_gradient2 = " ▁▂▃▄▅▆▇█"
+grays = [16] + list(range(232,255)) + [255]
 c256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(grays[i],grays[i+1],c)\
-                 for i in range(23)\
+                 for i in range(len(grays)-1)\
                  for c in ascii_gradient] # requires 256 color support
+
+c256_gradient2 = ["\033[48;5;%dm\033[38;5;%dm%s"%(grays[i],grays[i+1],c)\
+                  for i in range(len(grays)-1)\
+                  for c in block_gradient2]
 
 # set gradient depending on what terminal we are using
 TERM = os.environ['TERM']
@@ -70,10 +70,8 @@ else:
     # simplest gradient that workst for sure
     color_gradient = ascii_gradient
 
-
-
 backgroundchar = color_gradient[0]
-draw_dist_min = -1
+draw_dist_min = 0
 draw_dist_max = 1
 
 def char_from_color(v):
@@ -118,7 +116,10 @@ def newscreen(w,h,c):
 
     return r
 
-screen = newscreen(width,height,backgroundchar)
+
+
+screen   = newscreen(width,height,backgroundchar)
+z_buffer = [[-999 for x in range(width)] for y in range(height)]
 
 class Keypress():
     left   =  False
@@ -167,7 +168,7 @@ def generate_floor(x_start,x_end,y_start,y_end,tile_size=1):
             yield Triangle(p2,p3,p4, (128,128,128))
 
 class Camera():
-    def __init__(self,x=0,y=0,z=0,u=0,v=0,w=0,zoom=1):
+    def __init__(self,x=0,y=0,z=0,u=0,v=0,w=0,zoom=1.0):
         self.x = x              # position
         self.y = y
         self.z = z
@@ -225,14 +226,19 @@ def point_relative_to_camera(point,camera):
 
     return Point(x,y,z,color)
 
-def draw_pixel(_x,_y,color=white):
+def draw_pixel(_x,_y,z):
     global screen
     global width
     global height
+    global draw_dist_min
+    global draw_dist_max
+
     x = int(width/2+_x)
     y = int(height/2-_y)
     if (x >= 0 and x < width) and (y >= 0 and y < height):
-        screen[y][x] = color
+        if z_buffer[y][x] < z and z>=draw_dist_min and z<=draw_dist_max:
+            screen[y][x] = char_from_color(z)
+            z_buffer[y][x] = z
 
 def draw_line(x1,y1,x2,y2,c1,c2):
     steps = max(abs(x1-x2),abs(y1-y2))
@@ -242,10 +248,10 @@ def draw_line(x1,y1,x2,y2,c1,c2):
             r2 = 1-r1
             x = r1*x1 + r2*x2
             y = r1*y1 + r2*y2
-            char = char_from_color(c1*r1 + c2*r2)
-            draw_pixel(x,y,char)
+            draw_pixel(x,y,(c1*r1 + c2*r2))
     else:
-        draw_pixel(x1,y2,char_from_color(c1))
+        return
+        draw_pixel(x1,y2,c1)
 
 def draw_line_relative(line,camera):
     p1 = point_relative_to_camera(line.p1,camera)
@@ -264,7 +270,7 @@ def draw_triangle_relative(triangle,camera):
        min([p1.x,p2.x,p3.x]) > width/2 or\
        max([p1.y,p2.y,p3.y]) < -height/2 or\
        min([p1.y,p2.y,p3.y]) > height/2 or\
-       min([p1.z,p2.z,p3.z]) < draw_dist_min:
+       max([p1.z,p2.z,p3.z]) < draw_dist_min:
         return
 
 
@@ -299,44 +305,15 @@ def draw_triangle_relative(triangle,camera):
         draw_line(p1.x ,p1.y, p2.x, p2.y, p1.color, p2.color)
 
 
-
-def draw_triangle_relative_buffered(triangle,camera):
-    "Collect depth of all triangles, buffer them and draw them in order"
-    depth = 1
-    # calculate center
-    mx = (triangle.p1.x + triangle.p2.x + triangle.p3.x)/3
-    my = (triangle.p1.y + triangle.p2.y + triangle.p3.y)/3
-    mz = (triangle.p1.z + triangle.p2.z + triangle.p3.z)/3
-    center_point = Point(mx,my,mz)
-
-    relative_center_point = point_relative_to_camera(center_point,camera)
-
-    depth = relative_center_point.z
-
-    global triangle_buffer
-    triangle_buffer.append((depth,
-                            triangle))
-
-def draw_buffers(camera):
-    global triangle_buffer
-
-    # sort list by depth
-    triangle_buffer.sort(key = lambda z: z[0])
-
-    # draw from back to front
-    for d,t in triangle_buffer:
-            draw_triangle_relative(t,camera)
-            if debug_draw:
-                sys.stdout.write("\033[0;0H"+"\n".join(["".join(line) for line in screen]))
-
-    triangle_buffer = []
-
 def engine_step():
     global screen
     global width
     global height
+    global z_buffer
+    global draw_dist_min
     p = "\n".join(["".join(line) for line in screen])
     screen = newscreen(width,height,backgroundchar)
+    z_buffer = [[draw_dist_min for x in range(width)] for y in range(height)]
     return "\033[0;0H"+p
 
 model_tetrahedron = [Triangle(Point(0,-1,1) ,Point(0,-1,-1),Point(-1,1,0)),
@@ -410,9 +387,11 @@ model_dodecahedron = [Triangle(p1,p2,p3) for (p1,p2,p3,p4,p5) in dodecahedron_po
 camera = Camera()
 
 def all_numbers(n=0):
-    while True:
+    while not single_frame:
         yield n
         n += 1
+    yield 0
+
 
 builtin_models = [model_tetrahedron,
                   model_cube,
@@ -466,11 +445,11 @@ def load_obj(filename,camera):
         elif len(line)<=1:
             pass
         else:
-            print("Ignoring line (%s)"%c)
+            sys.stderr.write("Ignoring line (%s)\n"%c)
 
     # adjust camera for large/small models
     draw_dist_min = 0
-    draw_dist_max = max_dist_from_center
+    draw_dist_max = max_dist_from_center * 1.1
     camera.zoom /= draw_dist_max**2
     return [f for f in faces]
 
@@ -479,7 +458,7 @@ if len(sys.argv)>1 :
     model = load_obj(sys.argv[1],camera)
     os.system("clear")
 else:
-    model = model_dodecahedron
+    model = model_cube
 
 sys.stdout.write("\033[1J")     # escape sequence to clear screen
 sys.stdout.write("\033[?25l")   # hide cursor
@@ -491,9 +470,8 @@ try:
         camera.w = 2*pi * 0.0001 * t
 
         for _ in model:
-            draw_triangle_relative_buffered(_,camera)
+            draw_triangle_relative(_,camera)
 
-        draw_buffers(camera)
         next_frame = engine_step()
         new_time = time.time()
         diff_time = new_time-old_time
