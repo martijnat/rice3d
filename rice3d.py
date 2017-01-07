@@ -222,7 +222,7 @@ def point_relative_to_camera(point,camera):
 
     # compensate for non-square fonts
 
-    x *= 1.6
+    x *= 1.7
 
     return Point(x,y,z,color)
 
@@ -315,74 +315,6 @@ def engine_step():
     z_buffer = [[draw_dist_min for x in range(width)] for y in range(height)]
     return "\033[0;0H"+p
 
-model_tetrahedron = [Triangle(Point(0,-1,1) ,Point(0,-1,-1),Point(-1,1,0)),
-                     Triangle(Point(0,-1,-1),Point(0,-1,1) ,Point(1,1,0)),
-                     Triangle(Point(1,1,0)  ,Point(-1,1,0)  ,Point(0,-1,1)),
-                     Triangle(Point(1,1,0)  ,Point(-1,1,0)  ,Point(0,-1,-1)),]
-
-cube_point = [Point(x,y,z) for x in [-.6,.6] for y in [-.6,.6] for z in [-.6,.6]]
-model_cube = [Triangle(cube_point[0b000],cube_point[0b001],cube_point[0b010]),
-              Triangle(cube_point[0b001],cube_point[0b010],cube_point[0b011]),
-              Triangle(cube_point[0b100],cube_point[0b101],cube_point[0b110]),
-              Triangle(cube_point[0b101],cube_point[0b110],cube_point[0b111]),
-              Triangle(cube_point[0b000],cube_point[0b100],cube_point[0b001]),
-              Triangle(cube_point[0b100],cube_point[0b001],cube_point[0b101]),
-              Triangle(cube_point[0b010],cube_point[0b110],cube_point[0b011]),
-              Triangle(cube_point[0b110],cube_point[0b011],cube_point[0b111]),
-              Triangle(cube_point[0b000],cube_point[0b010],cube_point[0b100]),
-              Triangle(cube_point[0b010],cube_point[0b100],cube_point[0b110]),
-              Triangle(cube_point[0b001],cube_point[0b011],cube_point[0b101]),
-              Triangle(cube_point[0b011],cube_point[0b101],cube_point[0b111]),]
-
-
-pm = [-1,1]                     # plus or minus
-model_octahedron = [Triangle(Point(x,0,0),
-                             Point(0,y,0),
-                             Point(0,0,z))
-                    for x in pm
-                    for y in pm
-                    for z in pm]
-
-phi= (1 + sqrt(5)) / 2 # golden ratio
-model_icosahedron = [Triangle(  Point(0,1/phi,-1),   Point(1/phi,1,0),    Point(-1/phi,1,0)),
-                     Triangle(  Point(0,1/phi,1),    Point(-1/phi,1,0),   Point(1/phi,1,0)),
-                     Triangle(  Point(0,1/phi,1),    Point(0,-1/phi,1),   Point(-1,0,1/phi)),
-                     Triangle(  Point(0,1/phi,1),    Point(1,0,1/phi),    Point(0,-1/phi,1)),
-                     Triangle(  Point(0,1/phi,-1),   Point(0,-1/phi,-1),  Point(1,0,-1/phi)),
-                     Triangle(  Point(0,1/phi,-1),   Point(-1,0,-1/phi),  Point(0,-1/phi,-1)),
-                     Triangle(  Point(0,-1/phi,1),   Point(1/phi,-1,0),   Point(-1/phi,-1,0)),
-                     Triangle(  Point(0,-1/phi,-1),  Point(-1/phi,-1,0),  Point(1/phi,-1,0)),
-                     Triangle(  Point(-1/phi,1,0),   Point(-1,0,1/phi),   Point(-1,0,-1/phi)),
-                     Triangle(  Point(-1/phi,-1,0),  Point(-1,0,-1/phi),  Point(-1,0,1/phi)),
-                     Triangle(  Point(1/phi,1,0),    Point(1,0,-1/phi),   Point(1,0,1/phi)),
-                     Triangle(  Point(1/phi,-1,0),   Point(1,0,1/phi),    Point(1,0,-1/phi)),
-                     Triangle(  Point(0,1/phi,1),    Point(-1,0,1/phi),   Point(-1/phi,1,0)),
-                     Triangle(  Point(0,1/phi,1),    Point(1/phi,1,0),    Point(1,0,1/phi)),
-                     Triangle(  Point(0,1/phi,-1),   Point(-1/phi,1,0),   Point(-1,0,-1/phi)),
-                     Triangle(  Point(0,1/phi,-1),   Point(1,0,-1/phi),   Point(1/phi,1,0)),
-                     Triangle(  Point(0,-1/phi,-1),  Point(-1,0,-1/phi),  Point(-1/phi,-1,0)),
-                     Triangle(  Point(0,-1/phi,-1),  Point(1/phi,-1,0),   Point(1,0,-1/phi)),
-                     Triangle(  Point(0,-1/phi,1),   Point(-1/phi,-1,0),  Point(-1,0,1/phi)),
-                     Triangle(  Point(0,-1/phi,1),   Point(1,0,1/phi),    Point(1/phi,-1,0))]
-
-dodecahedron_points = [[Point( (2-phi), 0, 1),  Point(-(2-phi), 0, 1),  Point(-(1/phi), (1/phi), (1/phi)),  Point( 0, 1, (2-phi)),  Point( (1/phi), (1/phi), (1/phi))],
-                       [Point(-(2-phi), 0, 1),  Point( (2-phi), 0, 1),  Point( (1/phi),-(1/phi), (1/phi)),  Point( 0,-1, (2-phi)),  Point(-(1/phi),-(1/phi), (1/phi))],
-                       [Point( (2-phi), 0,-1),  Point(-(2-phi), 0,-1),  Point(-(1/phi),-(1/phi),-(1/phi)),  Point( 0,-1,-(2-phi)),  Point( (1/phi),-(1/phi),-(1/phi))],
-                       [Point(-(2-phi), 0,-1),  Point( (2-phi), 0,-1),  Point( (1/phi), (1/phi),-(1/phi)),  Point( 0, 1,-(2-phi)),  Point(-(1/phi), (1/phi),-(1/phi))],
-                       [Point( 0, 1,-(2-phi)),  Point( 0, 1, (2-phi)),  Point( (1/phi), (1/phi), (1/phi)),  Point( 1, (2-phi), 0),  Point( (1/phi), (1/phi),-(1/phi))],
-                       [Point( 0, 1, (2-phi)),  Point( 0, 1,-(2-phi)),  Point(-(1/phi), (1/phi),-(1/phi)),  Point(-1, (2-phi), 0),  Point(-(1/phi), (1/phi), (1/phi))],
-                       [Point( 0,-1,-(2-phi)),  Point( 0,-1, (2-phi)),  Point(-(1/phi),-(1/phi), (1/phi)),  Point(-1,-(2-phi), 0),  Point(-(1/phi),-(1/phi),-(1/phi))],
-                       [Point( 0,-1, (2-phi)),  Point( 0,-1,-(2-phi)),  Point( (1/phi),-(1/phi),-(1/phi)),  Point( 1,-(2-phi), 0),  Point( (1/phi),-(1/phi), (1/phi))],
-                       [Point( 1, (2-phi), 0),  Point( 1,-(2-phi), 0),  Point( (1/phi),-(1/phi), (1/phi)),  Point( (2-phi), 0, 1),  Point( (1/phi), (1/phi), (1/phi))],
-                       [Point( 1,-(2-phi), 0),  Point( 1, (2-phi), 0),  Point( (1/phi), (1/phi),-(1/phi)),  Point( (2-phi), 0,-1),  Point( (1/phi),-(1/phi),-(1/phi))],
-                       [Point(-1, (2-phi), 0),  Point(-1,-(2-phi), 0),  Point(-(1/phi),-(1/phi),-(1/phi)),  Point(-(2-phi), 0,-1),  Point(-(1/phi), (1/phi),-(1/phi))],
-                       [Point(-1,-(2-phi), 0),  Point(-1, (2-phi), 0),  Point(-(1/phi), (1/phi), (1/phi)),  Point(-(2-phi), 0, 1),  Point(-(1/phi),-(1/phi), (1/phi))]]
-
-model_dodecahedron = [Triangle(p1,p2,p3) for (p1,p2,p3,p4,p5) in dodecahedron_points] +\
-                     [Triangle(p1,p3,p4) for (p1,p2,p3,p4,p5) in dodecahedron_points] +\
-                     [Triangle(p1,p4,p5) for (p1,p2,p3,p4,p5) in dodecahedron_points]
-
-
 camera = Camera()
 
 def all_numbers(n=0):
@@ -390,14 +322,6 @@ def all_numbers(n=0):
         yield n
         n += 1
     yield 0
-
-
-builtin_models = [model_tetrahedron,
-                  model_cube,
-                  model_octahedron,
-                  model_icosahedron,
-                  model_dodecahedron]
-
 
 def load_obj(filename,camera):
     global draw_dist_min
@@ -464,7 +388,7 @@ def load_obj(filename,camera):
     max_dist_from_center = max([(max_x-min_x),
                                 (max_y-min_y),
                                 (max_z-min_z)])/2
-    draw_dist_min = 0
+    draw_dist_min = -max_dist_from_center/2
     draw_dist_max = max_dist_from_center * 1.1
     camera.zoom /= draw_dist_max**2
     return [f for f in faces]
@@ -474,9 +398,8 @@ if len(sys.argv)>1 :
     model = load_obj(sys.argv[1],camera)
     os.system("clear")
 else:
-    model = model_icosahedron
-    draw_dist_max = phi
-    camera.zoom /= phi**2
+    print("Usage: ./rice3d.py [FILE]")
+    quit(1)
 
 sys.stdout.write("\033[1J")     # escape sequence to clear screen
 sys.stdout.write("\033[?25l")   # hide cursor
