@@ -236,14 +236,14 @@ def draw_pixel(_x,_y,z):
     x = int(width/2+_x)
     y = int(height/2-_y)
     if (x >= 0 and x < width) and (y >= 0 and y < height):
-        if z_buffer[y][x] < z and z>=draw_dist_min and z<=draw_dist_max:
+        if z_buffer[y][x] < z and z>=draw_dist_min:
             screen[y][x] = char_from_color(z)
             z_buffer[y][x] = z
 
 def draw_line(x1,y1,x2,y2,c1,c2):
     steps = max(abs(x1-x2),abs(y1-y2))
-    if steps>1:
-        for s in range(int(steps+2)):
+    if steps>0:
+        for s in range(int(steps+1)):
             r1 = s/steps
             r2 = 1-r1
             x = r1*x1 + r2*x2
@@ -474,7 +474,9 @@ if len(sys.argv)>1 :
     model = load_obj(sys.argv[1],camera)
     os.system("clear")
 else:
-    model = model_cube
+    model = model_icosahedron
+    draw_dist_max = phi
+    camera.zoom /= phi**2
 
 sys.stdout.write("\033[1J")     # escape sequence to clear screen
 sys.stdout.write("\033[?25l")   # hide cursor
