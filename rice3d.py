@@ -23,6 +23,15 @@ import os
 import shutil
 import sys
 import time
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("-s", "--singleframe",
+                    help="Render a single frame, then exit",
+                    action="store_true")
+parser.add_argument("FILE", help=".obj file to be rendered")
+args = parser.parse_args()
+
+
 
 size = width, height = 80, 24
 
@@ -41,7 +50,6 @@ draw_wireframe = not draw_faces
 debug_draw     = False
 borderwidth    = 0
 target_fps     = 60
-single_frame   = False
 
 ascii_gradient = " .:;+=xX$&"     # works with simple terminal
 block_gradient = " ░▒▓█"        # requires unicode support
@@ -318,7 +326,7 @@ def engine_step():
 camera = Camera()
 
 def all_numbers(n=0):
-    while not single_frame:
+    while not args.singleframe:
         yield n
         n += 1
     yield 0
@@ -394,12 +402,8 @@ def load_obj(filename,camera):
     return [f for f in faces]
 
 
-if len(sys.argv)>1 :
-    model = load_obj(sys.argv[1],camera)
-    os.system("clear")
-else:
-    print("Usage: ./rice3d.py [FILE]")
-    quit(1)
+model = load_obj(args.FILE,camera)
+
 
 sys.stdout.write("\033[1J")     # escape sequence to clear screen
 sys.stdout.write("\033[?25l")   # hide cursor
@@ -422,5 +426,4 @@ try:
 except KeyboardInterrupt:
     pass
 
-# sys.stdout.write("\033[1J")     # clear screen again
 sys.stdout.write("\033[?25h")   # show cursor again
