@@ -330,7 +330,7 @@ camera = Camera()
 
 def all_numbers(n=0):
     if args.framecount > 0:
-        for t in range(n,n+args.framecount):
+        for t in range(args.framecount):
             yield t
     else:
         while True:
@@ -415,6 +415,7 @@ if args.script:
     sys.stdout.write("#!/bin/sh\n")
     sys.stdout.write("# Script generated with rice3d\n\n\n")
     sys.stdout.write("echo -e \"\033[1J\"")
+    sys.stdout.write("echo -e \"\\033[?25l\"")
 else:
     sys.stdout.write("\033[1J")     # escape sequence to clear screen
     sys.stdout.write("\033[?25l")   # hide cursor
@@ -423,7 +424,7 @@ try:
     for t in all_numbers():
         camera.u = 2*pi*t* -0.001
         camera.v = 2*pi*t* 0.01
-        camera.w = 2*pi*t* 0.0001
+        camera.w = 2*pi*t* 0.001
 
         for _ in model:
             draw_triangle_relative(_,camera)
