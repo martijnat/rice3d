@@ -411,8 +411,13 @@ def load_obj(filename,camera):
 
 model = load_obj(args.FILE,camera)
 
-sys.stdout.write("\033[1J")     # escape sequence to clear screen
-sys.stdout.write("\033[?25l")   # hide cursor
+if args.script:
+    sys.stdout.write("#!/bin/sh\n")
+    sys.stdout.write("# Script generated with rice3d\n\n\n")
+    sys.stdout.write("echo -e \"\033[1J\"")
+else:
+    sys.stdout.write("\033[1J")     # escape sequence to clear screen
+    sys.stdout.write("\033[?25l")   # hide cursor
 try:
     old_time = time.time()
     for t in all_numbers():
@@ -426,6 +431,10 @@ try:
         next_frame = engine_step()
 
         if args.script:
+            sys.stdout.write("\ncat << 'EOF'\n")
+            sys.stdout.write(next_frame)
+            sys.stdout.write("\nEOF\n")
+            sys.stdout.write("sleep %f\n"%(1/args.framerate))
             pass
         else:
             new_time = time.time()
@@ -436,4 +445,7 @@ try:
 except KeyboardInterrupt:
     pass
 
-sys.stdout.write("\033[?25h")   # show cursor again
+if args.script:
+    sys.stdout.write("\n\necho -e \"\033[?25h\"")   # show cursor again
+else:
+    sys.stdout.write("\033[?25h")   # show cursor again
