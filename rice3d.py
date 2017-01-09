@@ -24,32 +24,51 @@ import shutil
 import sys
 import time
 import argparse
+
+columns, rows = shutil.get_terminal_size((80, 20))
+
 parser = argparse.ArgumentParser()
-parser.add_argument("-s", "--singleframe",
-                    help="Render a single frame, then exit",
+parser.add_argument("-b", "--borderwidth",
+                    help="width of border in characters",
+                    type=int,
+                    default=0)
+
+parser.add_argument("-F", "--framerate",
+                    help="Maximum framerate when drawing multiple frames",
+                    type=int,
+                    default=60)
+
+parser.add_argument("-f", "--framecount",
+                    help="Number of frames to render (ignore in combination with --singleframe)",
+                    type=int,
+                    default=-1)
+
+parser.add_argument("-c", "--columns",
+                    help="Number of columns (widht) per frame",
+                    type=int,
+                    default=columns)
+
+parser.add_argument("-l", "--lines",
+                    help="Lines of output (height) per frame",
+                    type=int,
+                    default=rows)
+
+parser.add_argument("-s", "--script",
+                    help="Output as a BASH shell script, to be run later",
                     action="store_true")
+
+parser.add_argument("-w", "--wireframe",
+                    help="Draw model as wireframe instead of solid faces",
+                    action="store_true")
+
+
 parser.add_argument("FILE", help=".obj file to be rendered")
+
 args = parser.parse_args()
 
 
-
-size = width, height = 80, 24
-
-try:
-    columns, rows = shutil.get_terminal_size((80, 20))
-    size = width, height = columns ,rows
-except:
-    pass
-
+width, height = args.columns, args.lines
 zoomfactor = min(width,height)
-
-engine_version = "0.6"
-
-draw_faces     = True
-draw_wireframe = not draw_faces
-debug_draw     = False
-borderwidth    = 0
-target_fps     = 60
 
 ascii_gradient = " .:;+=xX$&"     # works with simple terminal
 block_gradient = " ░▒▓█"        # requires unicode support
@@ -104,7 +123,7 @@ def newscreen(w,h,c):
     r =[[c for _w in range(w)] for _h in range(h)]
 
 
-    for d in range(min(borderwidth,h//2)):
+    for d in range(min(args.borderwidth,h//2)):
         # add left/right border
         escapecode      = "\033[48;5;232m\033[38;5;4m%s\033[0m"
         for y in range(d,h-d):
@@ -164,17 +183,6 @@ class Triangle():
         self.color=color
         self.outline = outline
 
-def generate_floor(x_start,x_end,y_start,y_end,tile_size=1):
-    for x in range(x_start,x_end,tile_size):
-        for y in range(y_start,y_end,tile_size):
-            p1 = Point(x,y,1)
-            p2 = Point(x,y+tile_size,1)
-            p3 = Point(x+tile_size,y,1)
-            p4 = Point(x+tile_size,y+tile_size,1)
-
-            yield Triangle(p1,p2,p3, (164,164,164))
-            yield Triangle(p2,p3,p4, (128,128,128))
-
 class Camera():
     def __init__(self,x=0,y=0,z=0,u=0,v=0,w=0,zoom=1.0):
         self.x = x              # position
@@ -213,10 +221,7 @@ def point_relative_to_camera(point,camera):
                sx* (cy*z + sy*(sz*y + cz*x)) + cx*(cz*y-sz*x),
                cx* (cy*z + sy*(sz*y + cz*x)) - sx*(cz*y-sz*x))
 
-
-
     # add depth perception
-
     # get a z > 0 to avoid diving by zero
     z_tmp = max(0.01,z+draw_dist_max) * 0.5
     # multiple by z axis to get perspective
@@ -284,7 +289,11 @@ def draw_triangle_relative(triangle,camera):
 
     # sys.stdout.write("\033[0;0H"+"\n".join(["".join(line) for line in screen]))
 
-    if draw_faces:
+    if args.wireframe:
+        draw_line(p1.x ,p1.y, p3.x, p3.y, p1.color, p3.color)
+        draw_line(p2.x ,p2.y, p3.x, p3.y, p2.color, p3.color)
+        draw_line(p1.x ,p1.y, p2.x, p2.y, p1.color, p2.color)
+    else:
         edge_length = int(max(map((lambda p:max(map(abs,[(p[0].x - p[1].x),(p[0].y - p[1].y)]))),
                                   [(p1,p2),(p2,p3),(p3,p1)])))
 
@@ -306,12 +315,6 @@ def draw_triangle_relative(triangle,camera):
             draw_line(p1.x,p1.y,_x1,_y1,p1.color,_c1)
 
 
-    if draw_wireframe:
-        draw_line(p1.x ,p1.y, p3.x, p3.y, p1.color, p3.color)
-        draw_line(p2.x ,p2.y, p3.x, p3.y, p2.color, p3.color)
-        draw_line(p1.x ,p1.y, p2.x, p2.y, p1.color, p2.color)
-
-
 def engine_step():
     global screen
     global width
@@ -326,10 +329,13 @@ def engine_step():
 camera = Camera()
 
 def all_numbers(n=0):
-    while not args.singleframe:
-        yield n
-        n += 1
-    yield 0
+    if args.framecount > 0:
+        for t in range(n,n+args.framecount):
+            yield t
+    else:
+        while True:
+            yield n
+            n += 1
 
 def load_obj(filename,camera):
     global draw_dist_min
@@ -385,7 +391,8 @@ def load_obj(filename,camera):
         elif len(line)<=1:
             pass
         else:
-            sys.stderr.write("Ignoring line (%s)\n"%c)
+            pass
+            # sys.stderr.write("Ignoring line (%s)\n"%c)
 
     # adjust camera for large/small models
     camera.x = (max_x + min_x) / 2
@@ -404,25 +411,28 @@ def load_obj(filename,camera):
 
 model = load_obj(args.FILE,camera)
 
-
 sys.stdout.write("\033[1J")     # escape sequence to clear screen
 sys.stdout.write("\033[?25l")   # hide cursor
 try:
     old_time = time.time()
     for t in all_numbers():
-        camera.u = 2*pi * -0.001 * t
-        camera.v = 2*pi * 0.01 * t
-        camera.w = 2*pi * 0.0001 * t
+        camera.u = 2*pi*t* -0.001
+        camera.v = 2*pi*t* 0.01
+        camera.w = 2*pi*t* 0.0001
 
         for _ in model:
             draw_triangle_relative(_,camera)
 
         next_frame = engine_step()
-        new_time = time.time()
-        diff_time = new_time-old_time
-        old_time = new_time
-        sys.stdout.write(next_frame)
-        time.sleep(max(0,(1/target_fps)-diff_time))
+
+        if args.script:
+            pass
+        else:
+            new_time = time.time()
+            diff_time = new_time-old_time
+            old_time = new_time
+            sys.stdout.write(next_frame)
+            time.sleep(max(0,(1/args.framerate)-diff_time))
 except KeyboardInterrupt:
     pass
 
