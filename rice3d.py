@@ -67,10 +67,14 @@ parser.add_argument("-a", "--ascpectratio",
                     type=float,
                     default=1.5)
 
+parser.add_argument("-d", "--dithering",
+                    help="Dither colors rather than rounding them down",
+                    action="store_true")
+
 
 parser.add_argument("FILE", help=".obj file to be rendered")
 
-ascii_gradient = " .:;+=xX$&"     # works with simple terminal
+ascii_gradient = " .:;=X"     # works with simple terminal
 block_gradient = " ░▒▓█"        # requires unicode support
 block_gradient2 = " ▁▂▃▄▅▆▇█"
 grays = [16] + list(range(232,256)) + [255]
@@ -106,18 +110,29 @@ backgroundchar = args.gradient[0]
 draw_dist_min = 0
 draw_dist_max = 1
 
-def char_from_color(v):
+dither_erorrate = 0.0
+
+def char_from_color(z):
     global draw_dist_min
     global draw_dist_max
-    # go from range min_v,mav_v to [0,1]
-    d = (v - draw_dist_min) / (draw_dist_max - draw_dist_min)
+    global dither_erorrate
+    l =len(args.gradient)
+    d = (z - draw_dist_min) / ((draw_dist_max) - draw_dist_min)
 
-    gi =int(d*(len(args.gradient))-0.5)
-    if gi >= len(args.gradient):
-        gi = len(args.gradient)-1
-    elif gi<0:
-        gi = 0
-    return args.gradient[gi]
+    index =int(d*l)
+
+    if args.dithering:
+        error = d*l - int(index)
+        dither_erorrate += error
+        if dither_erorrate >= 1.0:
+            dither_erorrate -= 1.0
+            index+=1
+
+    if index >= l:
+        index = l-1
+    elif index<0:
+        index = 0
+    return args.gradient[index]
 
 
 
@@ -408,7 +423,7 @@ def load_obj(filename,camera):
     max_dist_from_center = max([(max_x-min_x),
                                 (max_y-min_y),
                                 (max_z-min_z)])/2
-    draw_dist_min = -max_dist_from_center/2
+    draw_dist_min = -max_dist_from_center
     draw_dist_max = max_dist_from_center * 1.1
     camera.zoom /= draw_dist_max**2
     return [f for f in faces]
