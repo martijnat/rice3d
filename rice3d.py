@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/env pypy3
+# -*- coding: utf-8 -*-
 
 # Copyright (C) 2017  Martijn Terpstra
 
@@ -61,26 +62,22 @@ parser.add_argument("-w", "--wireframe",
                     help="Draw model as wireframe instead of solid faces",
                     action="store_true")
 
+parser.add_argument("-a", "--ascpectratio",
+                    help="Ratio between height and length of a character \"pixel\"",
+                    type=float,
+                    default=1.5)
+
 
 parser.add_argument("FILE", help=".obj file to be rendered")
-
-args = parser.parse_args()
-
-
-width, height = args.columns, args.lines
-zoomfactor = min(width,height)
 
 ascii_gradient = " .:;+=xX$&"     # works with simple terminal
 block_gradient = " ░▒▓█"        # requires unicode support
 block_gradient2 = " ▁▂▃▄▅▆▇█"
-grays = [16] + list(range(232,255)) + [255]
+grays = [16] + list(range(232,256)) + [255]
 c256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(grays[i],grays[i+1],c)\
                  for i in range(len(grays)-1)\
                  for c in ascii_gradient] # requires 256 color support
 
-c256_gradient2 = ["\033[48;5;%dm\033[38;5;%dm%s"%(grays[i],grays[i+1],c)\
-                  for i in range(len(grays)-1)\
-                  for c in block_gradient2]
 
 # set gradient depending on what terminal we are using
 TERM = os.environ['TERM']
@@ -88,16 +85,24 @@ TERM = os.environ['TERM']
 if TERM in ["screen-256color","xterm-256color","xterm"]:
     # 256 colors
     color_gradient = c256_gradient
-elif TERM in ["eterm-color"]:
+elif TERM in ["eterm-color","linux"]:
     # 8 colors only
     color_gradient = ascii_gradient
-elif TERM in ["linux"]:          # tty
-    color_gradient = block_gradient
 else:
     # simplest gradient that workst for sure
     color_gradient = ascii_gradient
 
-backgroundchar = color_gradient[0]
+
+parser.add_argument("-g", "--gradient",
+                    help="string used to generate a character gradient",
+                    default=color_gradient)
+
+args = parser.parse_args()
+
+width, height = args.columns, args.lines
+zoomfactor = min(width,height)
+backgroundchar = args.gradient[0]
+
 draw_dist_min = 0
 draw_dist_max = 1
 
@@ -107,12 +112,12 @@ def char_from_color(v):
     # go from range min_v,mav_v to [0,1]
     d = (v - draw_dist_min) / (draw_dist_max - draw_dist_min)
 
-    gi =int(d*(len(color_gradient))-0.5)
-    if gi >= len(color_gradient):
-        gi = len(color_gradient)-1
+    gi =int(d*(len(args.gradient))-0.5)
+    if gi >= len(args.gradient):
+        gi = len(args.gradient)-1
     elif gi<0:
         gi = 0
-    return color_gradient[gi]
+    return args.gradient[gi]
 
 
 
@@ -235,7 +240,7 @@ def point_relative_to_camera(point,camera):
 
     # compensate for non-square fonts
 
-    x *= 1.7
+    x *= args.ascpectratio
 
     return Point(x,y,z,color)
 
@@ -424,7 +429,7 @@ try:
     for t in all_numbers():
         camera.u = 2*pi*t* -0.001
         camera.v = 2*pi*t* 0.01
-        camera.w = 2*pi*t* 0.001
+        camera.w = 2*pi*t* 0.0001
 
         for _ in model:
             draw_triangle_relative(_,camera)
