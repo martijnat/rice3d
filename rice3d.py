@@ -29,7 +29,7 @@ import argparse
 columns, rows = shutil.get_terminal_size((80, 20))
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-F", "--framerate", help="Maximum framerate when drawing multiple frames", type=int, default=60)
+parser.add_argument("-F", "--framerate",help="Maximum framerate when drawing multiple frames", type=int, default=60)
 parser.add_argument("-f", "--framecount", help="Number of frames to render (ignore in combination with --singleframe)", type=int, default=-1)
 parser.add_argument("-c", "--columns", help="Number of columns (widht) per frame", type=int, default=columns)
 parser.add_argument("-l", "--lines", help="Lines of output (height) per frame", type=int, default=rows)
@@ -50,8 +50,7 @@ c256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(grays[i],grays[i+1],c)\
 
 # we use the $TERM variable to guess color ability
 TERM = os.environ['TERM']
-color_gradient = c256_gradient if TERM in ["screen-256color","xterm-256color","xterm"] else ascii_gradient
-
+color_gradient = c256_gradient ifTERM in ["screen-256color","xterm-256color","xterm"] else ascii_gradient
 parser.add_argument("-g", "--gradient", help="string used to generate a character gradient", default=color_gradient)
 args = parser.parse_args()
 
@@ -147,8 +146,8 @@ def point_relative_to_camera(point,camera):
     x, y, z = (cy* (sz*y + cz*x) - sy*z,
                sx* (cy*z + sy*(sz*y + cz*x)) + cx*(cz*y-sz*x),
                cx* (cy*z + sy*(sz*y + cz*x)) - sx*(cz*y-sz*x))
-    # add depth perception
-    z_tmp = max(-1.0001,z+draw_dist_max) * 1.5 # keep z>0 to avoid divison by zero
+    # add depth perception, keep z>0 to avoid divison by zero
+    z_tmp = max(-1.0001,z+draw_dist_max) * 1.5
     # multiple by z axis to get perspective
     x,y = x*z_tmp, y*z_tmp
     # to zoom in/out we multiply each coordinte by a factor
@@ -163,8 +162,10 @@ def draw_pixel(_x,_y,z):
     global screen, width, height, draw_dist_min, draw_dist_max
     x = int(width/2+_x)
     y = int(height/2-_y)
-    if (x >= 0 and x < width) and (y >= 0 and y < height): # do nothing if the point isn't visible
-        if z_buffer[y][x] < z and z>=draw_dist_min:    # z buffer check
+     # do nothing if the point isn't visible
+    if (x >= 0 and x < width) and (y >= 0 and y < height):
+        # check z_buffer to prevent draw over pixels in the front
+        if z_buffer[y][x] < z and z>=draw_dist_min:
             screen[y][x] = char_from_color(z)
             z_buffer[y][x] = z
 
@@ -243,9 +244,12 @@ def load_obj(filename,camera):
         elif c == "f":          # face information
             if "/" in line: # check for a/b/c syntax
                 if "//" in line: # check for a//b b//c c//d sumtax
-                    indexes = [list(map(lambda x:int(x.split("//")[0]),miniline.split(" ")))[0]-1 for miniline in line[2:-1].split()]
+                    indexes = [list(map(lambda x:int(x.split("//")[0]),
+                                        miniline.split(" ")))[0]-1
+                               for miniline in line[2:-1].split()]
                 else:
-                    indexes = [list(map(int,miniline.split("/")))[0]-1 for miniline in line[2:-1].split()]
+                    indexes = [list(map(int,miniline.split("/")))[0]-1
+                               for miniline in line[2:-1].split()]
             else:
                 indexes = list(map(lambda x:(int(x) - 1),line[1:-1].split()))
 
@@ -260,22 +264,23 @@ def load_obj(filename,camera):
 
 
     # adjust camera for large/small models
-    min_x = min(map(lambda v:v.x,vertices))
-    min_y = min(map(lambda v:v.y,vertices))
-    min_z = min(map(lambda v:v.z,vertices))
-
-    max_x = max(map(lambda v:v.x,vertices))
-    max_y = max(map(lambda v:v.y,vertices))
-    max_z = max(map(lambda v:v.z,vertices))
-
+    min_x    = min(map(lambda v:v.x,vertices))
+    min_y    = min(map(lambda v:v.y,vertices))
+    min_z    = min(map(lambda v:v.z,vertices))
+    max_x    = max(map(lambda v:v.x,vertices))
+    max_y    = max(map(lambda v:v.y,vertices))
+    max_z    = max(map(lambda v:v.z,vertices))
     camera.x = (max_x + min_x) / 2
     camera.y = (max_y + min_y) / 2
     camera.z = (max_z + min_z) / 2
 
-    max_dist_from_center = math.sqrt((max_x-min_x)**2 + (max_y-min_y)**2 + (max_z-min_z)**2)
-    draw_dist_min = -max_dist_from_center
-    draw_dist_max = max_dist_from_center
-    camera.zoom /= draw_dist_max**2
+    # Pythagorean theorem
+    max_dist_from_center = math.sqrt((max_x-min_x)**2 +
+                                  (max_y-min_y)**2 +
+                                  (max_z-min_z)**2)
+    draw_dist_min        = -max_dist_from_center
+    draw_dist_max        = max_dist_from_center
+    camera.zoom /        = draw_dist_max**2
     return faces
 
 model = load_obj(args.FILE,camera)
@@ -301,17 +306,19 @@ try:
         # fetch output to be draw
         next_frame = engine_step()
 
-        if args.script:         # add special formatting if we are creating a script
+        if args.script:
+            # add special formatting if we are creating a script
             sys.stdout.write("\ncat << 'EOF'\n")
             sys.stdout.write(next_frame)
             sys.stdout.write("\nEOF\n")
             sys.stdout.write("sleep %f\n"%(1/args.framerate))
         else:
-            new_time = time.time()
+            new_time  = time.time()
             diff_time = new_time-old_time
-            old_time = new_time
+            old_time  = new_time
             sys.stdout.write(next_frame)
-            time.sleep(max(0,(1/args.framerate)-diff_time)) # wait till the end of the frame
+            # wait till the end of the frame
+            time.sleep(max(0,(1/args.framerate)-diff_time))
 except KeyboardInterrupt:
     pass
 finally:
