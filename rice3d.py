@@ -71,10 +71,15 @@ parser.add_argument("-d", "--dithering",
                     help="Dither colors rather than rounding them down",
                     action="store_true")
 
+parser.add_argument("-t", "--time",
+                    help="Time to start animation at",
+                    type=int,
+                    default=0)
+
 
 parser.add_argument("FILE", help=".obj file to be rendered")
 
-ascii_gradient = " .:;=X"     # works with simple terminal
+ascii_gradient = " .=X"     # works with simple terminal
 block_gradient = " ░▒▓█"        # requires unicode support
 block_gradient2 = " ▁▂▃▄▅▆▇█"
 grays = [16] + list(range(232,256)) + [255]
@@ -243,7 +248,7 @@ def point_relative_to_camera(point,camera):
 
     # add depth perception
     # get a z > 0 to avoid diving by zero
-    z_tmp = max(0.01,z+draw_dist_max) * 0.5
+    z_tmp = max(0.0001,z+draw_dist_max) * 1.5
     # multiple by z axis to get perspective
     x*= z_tmp
     y*= z_tmp
@@ -296,11 +301,12 @@ class Scanbuffer():
     def __init__(self):
         global width
         global height
-        self.minX=[0 for _ in range(height)]
-        self.maxX=[0 for _ in range(height)]
-        self.minC=[0 for _ in range(height)]
-        self.maxC=[0 for _ in range(height)]
+        self.minX=[0 for _ in range(height*2)]
+        self.maxX=[0 for _ in range(height*2)]
+        self.minC=[0 for _ in range(height*2)]
+        self.maxC=[0 for _ in range(height*2)]
     def draw_part(self,y_min,y_max):
+        global height
         for y in range(int(y_min),int(y_max)):
             draw_line(self.minX[y],y,self.maxX[y],y,self.minC[y],self.maxC[y])
     def setminmax(self,y,p1,p2):
@@ -309,6 +315,7 @@ class Scanbuffer():
         self.minC[y] = p1.color
         self.maxC[y] = p2.color
     def write_line(self,p_low,p_high,handedness):
+        global height
         xdist = p_high.x - p_low.x
         ydist = p_high.y - p_low.y
         cdist = p_high.color - p_low.color
@@ -384,10 +391,10 @@ camera = Camera()
 def all_numbers(n=0):
     if args.framecount > 0:
         for t in range(args.framecount):
-            yield t
+            yield t + args.time
     else:
         while True:
-            yield n
+            yield n + args.time
             n += 1
 
 def load_obj(filename,camera):
@@ -443,18 +450,13 @@ def load_obj(filename,camera):
     max_y = max(map(lambda v:v.y,vertices))
     max_z = max(map(lambda v:v.z,vertices))
 
-
-
     camera.x = (max_x + min_x) / 2
     camera.y = (max_y + min_y) / 2
     camera.z = (max_z + min_z) / 2
 
-
-    max_dist_from_center = max([(max_x-min_x),
-                                (max_y-min_y),
-                                (max_z-min_z)])/2
+    max_dist_from_center = math.sqrt((max_x-min_x)**2 + (max_y-min_y)**2 + (max_z-min_z)**2)
     draw_dist_min = -max_dist_from_center
-    draw_dist_max = max_dist_from_center * 1.1
+    draw_dist_max = max_dist_from_center
     camera.zoom /= draw_dist_max**2
     return [f for f in faces]
 
