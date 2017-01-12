@@ -291,6 +291,59 @@ def draw_line_relative(line,camera):
     p2 = point_relative_to_camera(line.p2,camera)
     draw_line(p1.x,p1.y,p2.x,p2.y,line.color)
 
+
+class Scanbuffer():
+    def __init__(self):
+        global width
+        global height
+        self.minX=[0 for _ in range(height)]
+        self.maxX=[0 for _ in range(height)]
+        self.minC=[0 for _ in range(height)]
+        self.maxC=[0 for _ in range(height)]
+    def draw_part(self,y_min,y_max):
+        for y in range(int(y_min),int(y_max)):
+            draw_line(self.minX[y],y,self.maxX[y],y,self.minC[y],self.maxC[y])
+    def setminmax(self,y,p1,p2):
+        self.minX[y] = p1.x
+        self.MaxX[y] = p2.x
+        self.minC[y] = p1.color
+        self.maxC[y] = p2.color
+    def write_line(self,p_low,p_high,handedness):
+        xdist = p_high.x - p_low.x
+        ydist = p_high.y - p_low.y
+        cdist = p_high.color - p_low.color
+        if ydist<=0:
+            return
+        xstep = xdist / ydist
+        cstep = cdist / ydist
+        xcurrent = p_low.x
+        ccurrent = p_low.color
+        for y in range(int(p_low.y),int(p_high.y)+1):
+            if handedness:
+                self.minX[y] = int(xcurrent)
+                self.minC[y] = ccurrent
+            else:
+                self.maxX[y] = int(xcurrent)
+                self.maxC[y] = ccurrent
+
+            xcurrent += xstep
+            ccurrent += cstep
+
+def draw_triangle(p1,p2,p3):
+    # simple bubble sort
+    if p1.y > p2.y:
+        p1,p2 = p2,p1
+    if p2.y > p3.y:
+        p2,p3 = p3,p2
+    if p1.y > p2.y:
+        p1,p2 = p2,p1
+
+    sbuffer = Scanbuffer()
+    sbuffer.write_line(p1, p2, True)
+    sbuffer.write_line(p2, p3, True)
+    sbuffer.write_line(p1, p3, False)
+    sbuffer.draw_part(p1.y,p3.y)
+
 def draw_triangle_relative(triangle,camera):
     global height,width
     # get three point of triangle
@@ -307,32 +360,12 @@ def draw_triangle_relative(triangle,camera):
        max([p1.z,p2.z,p3.z]) < draw_dist_min:
         return
 
-    # sys.stdout.write("\033[0;0H"+"\n".join(["".join(line) for line in screen]))
-
     if args.wireframe:
         draw_line(p1.x ,p1.y, p3.x, p3.y, p1.color, p3.color)
         draw_line(p2.x ,p2.y, p3.x, p3.y, p2.color, p3.color)
         draw_line(p1.x ,p1.y, p2.x, p2.y, p1.color, p2.color)
     else:
-        edge_length = int(max(map((lambda p:max(map(abs,[(p[0].x - p[1].x),(p[0].y - p[1].y)]))),
-                                  [(p1,p2),(p2,p3),(p3,p1)])))
-
-        for r in [t/edge_length for t in range(edge_length)]:
-            _x3 = r*p1.x + (1-r)*p2.x
-            _y3 = r*p1.y + (1-r)*p2.y
-            _c3 = r*p1.color + (1-r)*p2.color
-
-            _x1 = r*p3.x + (1-r)*p2.x
-            _y1 = r*p3.y + (1-r)*p2.y
-            _c1 = r*p3.color + (1-r)*p2.color
-
-            _x2 = r*p1.x + (1-r)*p3.x
-            _y2 = r*p1.y + (1-r)*p3.y
-            _c2 = r*p1.color + (1-r)*p3.color
-
-            draw_line(p3.x,p3.y,_x3,_y3,p3.color,_c3)
-            draw_line(p2.x,p2.y,_x2,_y2,p2.color,_c2)
-            draw_line(p1.x,p1.y,_x1,_y1,p1.color,_c1)
+        draw_triangle(p1,p2,p3)
 
 
 def engine_step():
@@ -442,9 +475,9 @@ else:
 try:
     old_time = time.time()
     for t in all_numbers():
-        camera.u = 2*pi*t* -0.001
-        camera.v = 2*pi*t* 0.01
-        camera.w = 2*pi*t* 0.0001
+        camera.u = 2*pi*t* -0.0005
+        camera.v = 2*pi*t* 0.005
+        camera.w = 2*pi*t* 0.00005
 
         for _ in model:
             draw_triangle_relative(_,camera)
