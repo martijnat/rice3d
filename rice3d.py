@@ -402,12 +402,6 @@ def load_obj(filename,camera):
 
     vertices = []
     faces = []
-    max_x = 0.0
-    min_x = 0.0
-    max_y = 0.0
-    min_y = 0.0
-    max_z = 0.0
-    min_z = 0.0
 
     for line in open(filename).readlines():
         c = line[0]
@@ -418,15 +412,7 @@ def load_obj(filename,camera):
                 pass
             else:
                 coords = list(map(float,line[1:-1].split()))
-                x,y,z = coords[0],coords[1],coords[2]
-                vertices.append(Point(x,y,z))
-                max_x = max(x,max_x)
-                min_x = min(x,min_x)
-                max_y = max(y,max_y)
-                min_y = min(y,min_y)
-                max_z = max(z,max_z)
-                min_z = min(z,min_z)
-
+                vertices.append(Point(coords[0],coords[1],coords[2]))
         elif c == "f":
             if "/" in line: # check for a/b/c syntax
                 # vertex_indexes = list(map(lambda x:(int(x) - 1),line[1:-1].split()))
@@ -448,6 +434,17 @@ def load_obj(filename,camera):
             # sys.stderr.write("Ignoring line (%s)\n"%c)
 
     # adjust camera for large/small models
+
+    min_x = min(map(lambda v:v.x,vertices))
+    min_y = min(map(lambda v:v.y,vertices))
+    min_z = min(map(lambda v:v.z,vertices))
+
+    max_x = max(map(lambda v:v.x,vertices))
+    max_y = max(map(lambda v:v.y,vertices))
+    max_z = max(map(lambda v:v.z,vertices))
+
+
+
     camera.x = (max_x + min_x) / 2
     camera.y = (max_y + min_y) / 2
     camera.z = (max_z + min_z) / 2
