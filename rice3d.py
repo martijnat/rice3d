@@ -74,7 +74,11 @@ parser.add_argument("-d", "--dithering",
 parser.add_argument("-t", "--time",
                     help="Time to start animation at",
                     type=int,
+<<<<<<< HEAD
                     default=0)
+=======
+                    default=60)
+>>>>>>> af8d2db58e1b331b2a74781d96d69cc9e54ba1fe
 
 
 parser.add_argument("FILE", help=".obj file to be rendered")
