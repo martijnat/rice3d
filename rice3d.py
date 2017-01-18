@@ -116,7 +116,23 @@ class Scanbuffer():
             xcurrent += xstep
             ccurrent += cstep
 
-def char_from_color(z):
+
+
+def bayer2(x,y,r):
+    bayer_matrix = [0,2,3,1]
+    i = 2*(int(x)%2) + (int(y)%2)
+    return 1 if (r*4)>bayer_matrix[i] else 0
+
+def bayer4(x,y,r):
+    bayer_matrix = [0,  8,  2,  10,
+                    12, 4,  14, 6,
+                    3,  11, 1,  9,
+                    15, 7,  13, 5]
+    i = 2*(int(x)%4) + (int(y)%4)
+    return 1 if (r*16)>bayer_matrix[i] else 0
+
+
+def char_from_color(x,y,z):
     global draw_dist_min,draw_dist_max,dither_erorrate
     # first we scale z from the doman [draw_dist_min..max] to [0..gradient]
     l =len(args.gradient)
@@ -125,11 +141,9 @@ def char_from_color(z):
     # keep global "error-rate", if we are dithering incread the value
     # of a pixel every now and then
     if args.dithering:
-        error = d*l - int(index)
-        dither_erorrate += error
-        if dither_erorrate >= 1.0:
-            dither_erorrate -= 1.0
-            index+=1
+        if index < len(args.gradient) -1:
+            error = d*l - int(index)
+            index += bayer4(x,y,error)
     return args.gradient[index]
 
 def point_relative_to_camera(point,camera):
@@ -169,7 +183,7 @@ def draw_pixel(_x,_y,z):
     if (x >= 0 and x < width) and (y >= 0 and y < height):
         # check z_buffer to prevent draw over pixels in the front
         if z_buffer[y][x] < z and z>=draw_dist_min:
-            screen[y][x] = char_from_color(z)
+            screen[y][x] = char_from_color(x,y,z)
             z_buffer[y][x] = z
 
 def draw_line(x1,y1,x2,y2,c1,c2):
