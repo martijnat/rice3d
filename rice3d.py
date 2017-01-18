@@ -34,10 +34,13 @@ parser.add_argument("-f", "--framecount", help="Number of frames to render (igno
 parser.add_argument("-c", "--columns", help="Number of columns (widht) per frame", type=int, default=columns)
 parser.add_argument("-l", "--lines", help="Lines of output (height) per frame", type=int, default=rows)
 parser.add_argument("-s", "--script", help="Output as a BASH shell script, to be run later", action="store_true")
-parser.add_argument("-w", "--wireframe", help="Draw model as wireframe instead of solid faces", action="store_true")
+parser.add_argument("-W", "--wireframe", help="Draw model as wireframe instead of solid faces", action="store_true")
 parser.add_argument("-a", "--ascpectratio", help="Ratio between height and length of a character \"pixel\"", type=float, default=1.5)
 parser.add_argument("-d", "--dithering", help="Dither colors rather than rounding them down", action="store_true")
 parser.add_argument("-t", "--time", help="Time to start animation at", type=int, default=0)
+parser.add_argument("-u", "--camerau", help="Camera angle (u)", type=float, default=0.0)
+parser.add_argument("-v", "--camerav", help="Camera angle (v)", type=float, default=0.0)
+parser.add_argument("-w", "--cameraw", help="Camera angle (w)", type=float, default=0.0)
 parser.add_argument("FILE", help=".obj file to be rendered")
 
 # setup text character to represent
@@ -50,7 +53,7 @@ c256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(grays[i],grays[i+1],c)\
 
 # we use the $TERM variable to guess color ability
 TERM = os.environ['TERM']
-color_gradient = c256_gradient ifTERM in ["screen-256color","xterm-256color","xterm"] else ascii_gradient
+color_gradient = c256_gradient if TERM in ["screen-256color","xterm-256color","xterm"] else ascii_gradient
 parser.add_argument("-g", "--gradient", help="string used to generate a character gradient", default=color_gradient)
 args = parser.parse_args()
 
@@ -69,7 +72,7 @@ class Point():
         self.x,self.y,self.z,self.color = x,y,z,color
 
 class Triangle():
-    def __init__(self,p1,p2,p3,color=1,outline = None):
+    def __init__(self,p1,p2,p3):
         self.p1,self.p2,self.p3=p1,p2,p3
 
 class Camera():
@@ -280,7 +283,7 @@ def load_obj(filename,camera):
                                   (max_z-min_z)**2)
     draw_dist_min        = -max_dist_from_center
     draw_dist_max        = max_dist_from_center
-    camera.zoom /        = draw_dist_max**2
+    camera.zoom          = camera.zoom  / draw_dist_max**2
     return faces
 
 model = load_obj(args.FILE,camera)
@@ -293,13 +296,14 @@ if args.script:
 else:
     sys.stdout.write("\033[1J")     # escape sequence to clear screen
     sys.stdout.write("\033[?25l")   # hide cursor
+
 try:
     old_time = time.time()
     for t in frame_numbers():
         # rotate camera every frame
-        camera.u = 2*pi*t* -0.0005
-        camera.v = 2*pi*t* 0.005
-        camera.w = 2*pi*t* 0.00005
+        camera.u = args.camerau + 2*pi*t* -0.0005
+        camera.v = args.camerav + 2*pi*t* 0.005
+        camera.w = args.cameraw + 2*pi*t* 0.00005
         # draw all triangles relative to this new camera
         for _ in model:
             draw_triangle_relative(_,camera)
