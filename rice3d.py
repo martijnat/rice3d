@@ -353,7 +353,13 @@ try:
             old_time  = new_time
             sys.stdout.write(next_frame)
             # wait till the end of the frame
-            time.sleep(max(0,(1/args.framerate)-diff_time))
+            if args.framerate > 0:
+                time.sleep(max(0,(1/args.framerate)-diff_time))
+            else:
+                # if framerate <= 0, display the same image forever
+                while True:
+                    time.sleep(10)
+
 except KeyboardInterrupt:
     pass
 finally:
