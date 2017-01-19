@@ -36,6 +36,7 @@ parser.add_argument("-l", "--lines", help="Lines of output (height) per frame", 
 parser.add_argument("-s", "--script", help="Output as a BASH shell script, to be run later", action="store_true")
 parser.add_argument("-W", "--wireframe", help="Draw model as wireframe instead of solid faces", action="store_true")
 parser.add_argument("-a", "--ascpectratio", help="Ratio between height and length of a character \"pixel\"", type=float, default=1.5)
+parser.add_argument("-A", "--autoscale",help="Automatically scale lighting to model depth", action="store_true")
 parser.add_argument("-d", "--dithering", help="Dither colors rather than rounding them down", action="store_true")
 parser.add_argument("-t", "--time", help="Time to start animation at", type=int, default=0)
 parser.add_argument("-u", "--camerau", help="Camera angle (u)", type=float, default=0.0)
@@ -58,14 +59,16 @@ parser.add_argument("-g", "--gradient", help="string used to generate a characte
 args = parser.parse_args()
 
 # some global variables, can be changed as the program runs
-width, height   = args.columns, args.lines
-zoomfactor      = min(width,height)
-backgroundchar  = args.gradient[0]
-draw_dist_min   = 0
-draw_dist_max   = 1
-dither_erorrate = 0.0
-screen          = [[backgroundchar for w in range(width)] for h in range(height)]
-z_buffer        = [[-999 for x in range(width)] for y in range(height)]
+width, height       = args.columns, args.lines
+zoomfactor          = min(width,height)
+backgroundchar      = args.gradient[0]
+draw_dist_min       = 0
+draw_dist_max       = 1
+draw_dist_min_frame = 0
+draw_dist_max_frame = 0
+dither_erorrate     = 0.0
+screen              = [[backgroundchar for w in range(width)] for h in range(height)]
+z_buffer            = [[-999 for x in range(width)] for y in range(height)]
 
 class Point():
     def __init__(self,x,y,z,color=1):
@@ -93,7 +96,7 @@ class Scanbuffer():
         self.minC=[0 for _ in range(height*2)]
         self.maxC=[0 for _ in range(height*2)]
     def draw_part(self,y_min,y_max):
-        for y in range(int(y_min),int(y_max)):
+        for y in range(max(-height,int(y_min)),min(height -1 ,int(y_max))):
             draw_line(self.minX[y],y,self.maxX[y],y,self.minC[y],self.maxC[y])
     def write_line(self,p_low,p_high,handedness):
         global height
@@ -106,7 +109,7 @@ class Scanbuffer():
         cstep = cdist / ydist
         xcurrent = p_low.x
         ccurrent = p_low.color
-        for y in range(int(p_low.y),int(p_high.y)+1):
+        for y in range(max(-height,int(p_low.y)),min(height*2,int(p_high.y)+1)):
             if handedness:
                 self.minX[y] = int(xcurrent)
                 self.minC[y] = ccurrent
@@ -144,6 +147,8 @@ def char_from_color(x,y,z):
         if index < len(args.gradient) -1:
             error = d*l - int(index)
             index += bayer4(x,y,error)
+
+    index = max(0,min(l-1,index))
     return args.gradient[index]
 
 def point_relative_to_camera(point,camera):
@@ -164,7 +169,7 @@ def point_relative_to_camera(point,camera):
                sx* (cy*z + sy*(sz*y + cz*x)) + cx*(cz*y-sz*x),
                cx* (cy*z + sy*(sz*y + cz*x)) - sx*(cz*y-sz*x))
     # add depth perception, keep z>0 to avoid divison by zero
-    z_tmp = max(-1.0001,z+draw_dist_max) * 1.5
+    z_tmp = max(-1.0001,z+(draw_dist_max - draw_dist_min))
     # multiple by z axis to get perspective
     x,y = x*z_tmp, y*z_tmp
     # to zoom in/out we multiply each coordinte by a factor
@@ -176,7 +181,7 @@ def point_relative_to_camera(point,camera):
 
 def draw_pixel(_x,_y,z):
     "Tranlate point x,y for [-1,1],[-1,1] to [0,height],[0,width] and draw it"
-    global screen, width, height, draw_dist_min, draw_dist_max
+    global screen, width, height, draw_dist_min, draw_dist_max, draw_dist_max_frame, draw_dist_min_frame
     x = int(width/2+_x)
     y = int(height/2-_y)
      # do nothing if the point isn't visible
@@ -185,6 +190,11 @@ def draw_pixel(_x,_y,z):
         if z_buffer[y][x] < z and z>=draw_dist_min:
             screen[y][x] = char_from_color(x,y,z)
             z_buffer[y][x] = z
+    if args.autoscale:
+        if z<draw_dist_min_frame:
+            draw_dist_min_frame = z
+        if z>draw_dist_max_frame:
+            draw_dist_max_frame = z
 
 def draw_line(x1,y1,x2,y2,c1,c2):
     "For every point visible on the line, draw a pixel"
@@ -227,10 +237,17 @@ def draw_triangle_relative(triangle,camera):
         draw_triangle(p1,p2,p3)
 
 def engine_step():
-    global screen, width, height, z_buffer, draw_dist_min
-    p = "\n".join(["".join(line) for line in screen])
-    screen   = [[backgroundchar for w in range(width)] for h in range(height)]
-    z_buffer = [[draw_dist_min for x in range(width)] for y in range(height)]
+    global screen, width, height, z_buffer, draw_dist_min, draw_dist_max, draw_dist_max_frame, draw_dist_min_frame
+    p                 = "\n".join(["".join(line) for line in screen])
+    screen            = [[backgroundchar for w in range(width)] for h in range(height)]
+    z_buffer          = [[draw_dist_min for x in range(width)] for y in range(height)]
+    if args.autoscale:
+        draw_dist_max = draw_dist_max_frame
+        draw_dist_min = draw_dist_min_frame
+        draw_dist_max_frame,draw_dist_min_frame =\
+                                                  draw_dist_max_frame * 0.9 + draw_dist_min_frame * 0.1,\
+                                                  draw_dist_min_frame * 0.9 + draw_dist_max_frame * 0.1
+        camera.zoom = zoomfactor  / ((draw_dist_max-draw_dist_min)**2)
     return "\033[0;0H"+p
 
 def frame_numbers(n=0):
@@ -245,7 +262,7 @@ def frame_numbers(n=0):
 
 def load_obj(filename,camera):
     "Parse an .obj file and return an array of Triangles"
-    global draw_dist_min,draw_dist_max
+    global draw_dist_min,draw_dist_max,zoomfactor
     obj_file = open(filename)
     vertices,faces = [],[]
     # each line represents 1 thing, we care only about
@@ -295,9 +312,9 @@ def load_obj(filename,camera):
     max_dist_from_center = math.sqrt((max_x-min_x)**2 +
                                   (max_y-min_y)**2 +
                                   (max_z-min_z)**2)
-    draw_dist_min        = -max_dist_from_center
-    draw_dist_max        = max_dist_from_center
-    camera.zoom          = camera.zoom  / draw_dist_max**2
+    draw_dist_min        = min_z
+    draw_dist_max        = max_z
+    camera.zoom          = zoomfactor  / (sum([max_x-min_x,max_y-min_y,max_z-min_z])/3)**2
     return faces
 
 model = load_obj(args.FILE,camera)
