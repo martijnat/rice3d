@@ -65,7 +65,7 @@ backgroundchar      = args.gradient[0]
 draw_dist_min       = 0
 draw_dist_max       = 1
 draw_dist_min_frame = 0
-draw_dist_max_frame = 0
+draw_dist_max_frame = 1
 dither_erorrate     = 0.0
 screen              = [[backgroundchar for w in range(width)] for h in range(height)]
 z_buffer            = [[-999 for x in range(width)] for y in range(height)]
@@ -314,6 +314,8 @@ def load_obj(filename,camera):
                                   (max_z-min_z)**2)
     draw_dist_min        = min_z
     draw_dist_max        = max_z
+    draw_dist_min_frame  = min_z
+    draw_dist_max_frame  = max_z
     camera.zoom          = zoomfactor  / (sum([max_x-min_x,max_y-min_y,max_z-min_z])/3)**2
     return faces
 
