@@ -46,18 +46,27 @@ parser.add_argument("-w", "--cameraw", help="Camera angle (w)", type=float, defa
 parser.add_argument("FILE", help=".obj file to be rendered")
 
 # setup text character to represent
-args = parser.parse_args()
-ascii_gradient = " ░▒▓█" if args.blockcharacters else " .=X"
+ascii_gradient = " .=X"
+block_gradient = " ░▒▓█"
 grays = [16] + list(range(232,256)) + [255]
 c256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(grays[i],grays[i+1],c)\
                  for i in range(len(grays)-1)\
                  for c in ascii_gradient] # requires 256 color support
+uc256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(grays[i],grays[i+1],c)\
+                 for i in range(len(grays)-1)\
+                 for c in block_gradient] # requires unicode support
+
 
 # we use the $TERM variable to guess color ability
 TERM = os.environ['TERM']
 color_gradient = c256_gradient if TERM in ["screen-256color","xterm-256color","xterm"] else ascii_gradient
 parser.add_argument("-g", "--gradient", help="string used to generate a character gradient", default=color_gradient)
 args = parser.parse_args()
+
+if args.blockcharacters:
+    args.gradient = uc256_gradient
+
+
 
 # some global variables, can be changed as the program runs
 width, height       = args.columns, args.lines
