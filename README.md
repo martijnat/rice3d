@@ -56,4 +56,8 @@ optional arguments:
 
 # Requirments
 
+<<<<<<< HEAD
 - pypy3 (can be replaced by python3 with a minor performance cost)
+=======
+- pypy3 (can be replace by python3 with a minor performance cost)
+>>>>>>> bc53be7fc4b9deeb17a535af335ad8c23729eddf
