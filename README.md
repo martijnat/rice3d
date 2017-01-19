@@ -17,9 +17,9 @@ Where FILE points to a .obj file. There are example models in the "models" folde
 # Advanced Usage
 
 ```
-usage: rice3d.py [-h] [-F FRAMERATE] [-f FRAMECOUNT] [-c COLUMNS] [-l LINES]
-                 [-s] [-W] [-a ASCPECTRATIO] [-A] [-d] [-t TIME] [-u CAMERAU]
-                 [-v CAMERAV] [-w CAMERAW] [-g GRADIENT]
+usage: rice3d.py [-h] [-b] [-F FRAMERATE] [-f FRAMECOUNT] [-c COLUMNS]
+                 [-l LINES] [-s] [-W] [-a ASCPECTRATIO] [-A] [-d] [-t TIME]
+                 [-u CAMERAU] [-v CAMERAV] [-w CAMERAW]
                  FILE
 
 positional arguments:
@@ -27,6 +27,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  -b, --blockcharacters
+                        Use block characters, may not work with all
+                        terminals/fonts
   -F FRAMERATE, --framerate FRAMERATE
                         Maximum framerate when drawing multiple frames
   -f FRAMECOUNT, --framecount FRAMECOUNT
@@ -49,8 +52,6 @@ optional arguments:
                         Camera angle (v)
   -w CAMERAW, --cameraw CAMERAW
                         Camera angle (w)
-  -g GRADIENT, --gradient GRADIENT
-                        string used to generate a character gradient
 ```
 
 

@@ -29,6 +29,7 @@ import argparse
 columns, rows = shutil.get_terminal_size((80, 20))
 
 parser = argparse.ArgumentParser()
+parser.add_argument("-b", "--blockcharacters", help="Use block characters, may not work with all terminals/fonts", action="store_true")
 parser.add_argument("-F", "--framerate",help="Maximum framerate when drawing multiple frames", type=int, default=60)
 parser.add_argument("-f", "--framecount", help="Number of frames to render (ignore in combination with --singleframe)", type=int, default=-1)
 parser.add_argument("-c", "--columns", help="Number of columns (widht) per frame", type=int, default=columns)
@@ -45,8 +46,8 @@ parser.add_argument("-w", "--cameraw", help="Camera angle (w)", type=float, defa
 parser.add_argument("FILE", help=".obj file to be rendered")
 
 # setup text character to represent
-
-ascii_gradient = " .=X"     # works with simple terminal
+args = parser.parse_args()
+ascii_gradient = " ░▒▓█" if args.blockcharacters else " .=X"
 grays = [16] + list(range(232,256)) + [255]
 c256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(grays[i],grays[i+1],c)\
                  for i in range(len(grays)-1)\
