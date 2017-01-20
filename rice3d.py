@@ -40,10 +40,16 @@ parser.add_argument("-a", "--ascpectratio", help="Ratio between height and lengt
 parser.add_argument("-A", "--autoscale",help="Automatically scale lighting to model depth", action="store_true")
 parser.add_argument("-d", "--dithering", help="Dither colors rather than rounding them down", action="store_true")
 parser.add_argument("-t", "--time", help="Time to start animation at", type=int, default=0)
+parser.add_argument("-T", "--truecolor", help="Use 24-bit true color output", action="store_true")
+parser.add_argument("-R", "--truecolorR", help="Red base value (truecolor)", type=float, default=1.0)
+parser.add_argument("-G", "--truecolorG", help="Green base value (truecolor)", type=float, default=1.0)
+parser.add_argument("-B", "--truecolorB", help="Blue base value (truecolor)", type=float, default=1.0)
 parser.add_argument("-u", "--camerau", help="Camera angle (u)", type=float, default=0.0)
 parser.add_argument("-v", "--camerav", help="Camera angle (v)", type=float, default=0.0)
 parser.add_argument("-w", "--cameraw", help="Camera angle (w)", type=float, default=0.0)
 parser.add_argument("FILE", help=".obj file to be rendered")
+parser.add_argument("-g", "--gradient", help="string used to generate a character gradient", default="")
+args = parser.parse_args()
 
 # setup text character to represent
 ascii_gradient = " .=X"
@@ -56,15 +62,16 @@ uc256_gradient = ["\033[48;5;%dm\033[38;5;%dm%s"%(grays[i],grays[i+1],c)\
                  for i in range(len(grays)-1)\
                  for c in block_gradient] # requires unicode support
 
-
 # we use the $TERM variable to guess color ability
 TERM = os.environ['TERM']
 color_gradient = c256_gradient if TERM in ["screen-256color","xterm-256color","xterm"] else ascii_gradient
-parser.add_argument("-g", "--gradient", help="string used to generate a character gradient", default=color_gradient)
-args = parser.parse_args()
 
 if args.blockcharacters:
     args.gradient = uc256_gradient
+elif args.truecolor:
+    args.gradient = ["\x1b[48;2;%i;%i;%im "%(int(i*args.truecolorR),int(i*args.truecolorG),int(i*args.truecolorB)) for i in range(255)]
+elif args.gradient == "":
+    args.gradient = color_gradient
 
 
 
@@ -179,7 +186,7 @@ def point_relative_to_camera(point,camera):
                sx* (cy*z + sy*(sz*y + cz*x)) + cx*(cz*y-sz*x),
                cx* (cy*z + sy*(sz*y + cz*x)) - sx*(cz*y-sz*x))
     # add depth perception, keep z>0 to avoid divison by zero
-    z_tmp = max(-1.0001,z+(draw_dist_max - draw_dist_min))
+    z_tmp = max(-0.0001,z+(draw_dist_max - draw_dist_min))
     # multiple by z axis to get perspective
     x,y = x*z_tmp, y*z_tmp
     # to zoom in/out we multiply each coordinte by a factor
