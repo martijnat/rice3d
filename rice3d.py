@@ -73,8 +73,6 @@ elif args.truecolor:
 elif args.gradient == "":
     args.gradient = color_gradient
 
-
-
 # some global variables, can be changed as the program runs
 width, height       = args.columns, args.lines
 zoomfactor          = min(width,height)
@@ -155,17 +153,17 @@ def draw_pixel(_x,_y,z):
     global screen, width, height, draw_dist_min, draw_dist_max, draw_dist_max_frame, draw_dist_min_frame
     x = int(width/2+_x)
     y = int(height/2-_y)
-     # do nothing if the point isn't visible
+    # do nothing if the point isn't visible
     if (x >= 0 and x < width) and (y >= 0 and y < height):
         # check z_buffer to prevent draw over pixels in the front
         if z_buffer[y][x] < z and z>=draw_dist_min:
             screen[y][x] = char_from_color(x,y,z)
             z_buffer[y][x] = z
-    if args.autoscale:
-        if z<draw_dist_min_frame:
-            draw_dist_min_frame = z
-        if z>draw_dist_max_frame:
-            draw_dist_max_frame = z
+        if args.autoscale:
+            if z<draw_dist_min_frame:
+                draw_dist_min_frame = z
+            if z>draw_dist_max_frame:
+                draw_dist_max_frame = z
 
 def draw_line(x1,y1,x2,y2,c1,c2):
     "For every point visible on the line, draw a pixel"
