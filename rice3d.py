@@ -104,54 +104,6 @@ class Camera():
 
 camera = Camera()               # singleton
 
-class Scanbuffer():
-    "Class for drawing triangles effeciently"
-    def __init__(self):
-        global height
-        self.minX=[0 for _ in range(height*2)]
-        self.maxX=[0 for _ in range(height*2)]
-        self.minC=[0 for _ in range(height*2)]
-        self.maxC=[0 for _ in range(height*2)]
-    def draw_part(self,y_min,y_max):
-        for y in range(max(-height,int(y_min)),min(height -1 ,int(y_max))):
-            draw_line(self.minX[y],y,self.maxX[y],y,self.minC[y],self.maxC[y])
-    def write_line(self,p_low,p_high,handedness):
-        global height
-        xdist = p_high.x - p_low.x
-        ydist = p_high.y - p_low.y
-        cdist = p_high.color - p_low.color
-        if ydist<=0:
-            return
-        xstep = xdist / ydist
-        cstep = cdist / ydist
-        xcurrent = p_low.x
-        ccurrent = p_low.color
-        for y in range(max(-height,int(p_low.y)),min(height*2,int(p_high.y)+1)):
-            if handedness:
-                self.minX[y] = int(xcurrent)
-                self.minC[y] = ccurrent
-            else:
-                self.maxX[y] = int(xcurrent)
-                self.maxC[y] = ccurrent
-            xcurrent += xstep
-            ccurrent += cstep
-
-
-
-def bayer2(x,y,r):
-    bayer_matrix = [0,2,3,1]
-    i = 2*(int(x)%2) + (int(y)%2)
-    return 1 if (r*4)>bayer_matrix[i] else 0
-
-def bayer4(x,y,r):
-    bayer_matrix = [0,  8,  2,  10,
-                    12, 4,  14, 6,
-                    3,  11, 1,  9,
-                    15, 7,  13, 5]
-    i = 2*(int(x)%4) + (int(y)%4)
-    return 1 if (r*16)>bayer_matrix[i] else 0
-
-
 def char_from_color(x,y,z):
     global draw_dist_min,draw_dist_max,dither_erorrate
     # first we scale z from the doman [draw_dist_min..max] to [0..gradient]
@@ -160,10 +112,12 @@ def char_from_color(x,y,z):
     index =int(d*l)
     # keep global "error-rate", if we are dithering incread the value
     # of a pixel every now and then
-    if args.dithering:
-        if index < len(args.gradient) -1:
-            error = d*l - int(index)
-            index += bayer4(x,y,error)
+    if args.dithering and index < len(args.gradient) -1:
+        error = d*l - int(index)
+        # 4x4 bayer matrix dithering
+        if [0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5]\
+           [2*(int(x)%4)+(int(y)%4)]<error*16:
+            index += 1
 
     index = max(0,min(l-1,index))
     return args.gradient[index]
@@ -225,6 +179,38 @@ def draw_line(x1,y1,x2,y2,c1,c2):
         return
 
 def draw_triangle(p1,p2,p3):
+    class Scanbuffer():
+        "Class for drawing triangles effeciently"
+        def __init__(self):
+            global height
+            self.minX=[0 for _ in range(height*2)]
+            self.maxX=[0 for _ in range(height*2)]
+            self.minC=[0 for _ in range(height*2)]
+            self.maxC=[0 for _ in range(height*2)]
+        def draw_part(self,y_min,y_max):
+            for y in range(max(-height,int(y_min)),min(height -1 ,int(y_max))):
+                draw_line(self.minX[y],y,self.maxX[y],y,self.minC[y],self.maxC[y])
+        def write_line(self,p_low,p_high,handedness):
+            global height
+            xdist = p_high.x - p_low.x
+            ydist = p_high.y - p_low.y
+            cdist = p_high.color - p_low.color
+            if ydist<=0:
+                return
+            xstep = xdist / ydist
+            cstep = cdist / ydist
+            xcurrent = p_low.x
+            ccurrent = p_low.color
+            for y in range(max(-height,int(p_low.y)),min(height*2,int(p_high.y)+1)):
+                if handedness:
+                    self.minX[y] = int(xcurrent)
+                    self.minC[y] = ccurrent
+                else:
+                    self.maxX[y] = int(xcurrent)
+                    self.maxC[y] = ccurrent
+                xcurrent += xstep
+                ccurrent += cstep
+
     # simple bubble sort to order points from low to high
     if p1.y > p2.y:
         p1,p2 = p2,p1
