@@ -140,7 +140,7 @@ def point_relative_to_camera(point,camera):
                sx* (cy*z + sy*(sz*y + cz*x)) + cx*(cz*y-sz*x),
                cx* (cy*z + sy*(sz*y + cz*x)) - sx*(cz*y-sz*x))
     # add depth perception, keep z>0 to avoid divison by zero
-    z_tmp = max(-0.0001,z+(draw_dist_max - draw_dist_min))
+    z_tmp = z+draw_dist_max - draw_dist_min
     # multiple by z axis to get perspective
     x,y = x*z_tmp, y*z_tmp
     # to zoom in/out we multiply each coordinte by a factor
