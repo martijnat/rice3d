@@ -265,36 +265,42 @@ def load_obj(filename,camera):
     vertices,faces = [],[]
     # each line represents 1 thing, we care only about
     # vertices(points) and faces(triangles)
-    for line in open(filename).readlines():
-        c = line[0]
-        if c == "v":            # vertices information
-            if line[1] in "tn":  # We ignore textures and normals
-                pass
-            else:
-                coords = list(map(float,line[1:-1].split()))
-                vertices.append(Point(coords[0],coords[1],coords[2]))
-        elif c == "f":          # face information
-            if "/" in line: # check for a/b/c syntax
-                if "//" in line: # check for a//b b//c c//d sumtax
-                    indexes = [list(map(lambda x:int(x.split("//")[0]),
-                                        miniline.split(" ")))[0]-1
-                               for miniline in line[2:-1].split()]
+    for linenumber,line in enumerate(open(filename).readlines()):
+        try:
+            c = line[0]
+            if c == "v":            # vertices information
+                if line[1] in "tn":  # We ignore textures and normals
+                    pass
                 else:
-                    indexes = [list(map(int,miniline.split("/")))[0]-1
-                               for miniline in line[2:-1].split()]
+                    coords = list(map(float,line[1:-1].split()))
+                    vertices.append(Point(coords[0],coords[1],coords[2]))
+            elif c == "f":          # face information
+                if "/" in line: # check for a/b/c syntax
+                    if "//" in line: # check for a//b b//c c//d sumtax
+                        indexes = [list(map(lambda x:int(x.split("//")[0]),
+                                            miniline.split(" ")))[0]-1
+                                   for miniline in line[2:-1].split()]
+                    else:
+                        indexes = [list(map(int,miniline.split("/")))[0]-1
+                                   for miniline in line[2:-1].split()]
+                else:
+                    indexes = list(map(lambda x:(int(x) - 1),line[1:-1].split()))
+
+                # If a face has more than 3 vertices, split the face into triangles
+                for i in range(0,len(indexes)-2):
+                    face = Triangle(vertices[indexes[0]],
+                                    vertices[indexes[i+1]],
+                                    vertices[indexes[i+2]])
+                    faces.append(face)
             else:
-                indexes = list(map(lambda x:(int(x) - 1),line[1:-1].split()))
+                pass                # ignore all other information
+        except:
+            sys.stderr.write("Could not parse line %d: %s"%(linenumber,line))
+            quit(1)
 
-            # If a face has more than 3 vertices, split the face into triangles
-            for i in range(0,len(indexes)-2):
-                face = Triangle(vertices[indexes[0]],
-                                vertices[indexes[i+1]],
-                                vertices[indexes[i+2]])
-                faces.append(face)
-        else:
-            pass                # ignore all other information
-
-
+    if len(vertices)<=0:
+            sys.stderr.write("Model contains no vertices\n")
+            quit(1)
     # adjust camera for large/small models
     min_x    = min(map(lambda v:v.x,vertices))
     min_y    = min(map(lambda v:v.y,vertices))
