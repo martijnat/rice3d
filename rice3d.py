@@ -319,16 +319,17 @@ def load_obj(filename,camera):
 
 model = load_obj(args.FILE,camera)
 
-if args.script:
-    sys.stdout.write("#!/bin/sh\n")
-    sys.stdout.write("# Script generated with rice3d\n\n\n")
-    sys.stdout.write("echo -e \"\033[1J\"")
-    sys.stdout.write("echo -e \"\\033[?25l\"")
-else:
-    sys.stdout.write("\033[1J")     # escape sequence to clear screen
-    sys.stdout.write("\033[?25l")   # hide cursor
 
 try:
+    if args.script:
+        sys.stdout.write("#!/bin/sh\n")
+        sys.stdout.write("# Script generated with rice3d\n\n\n")
+        sys.stdout.write("echo -e \"\033[1J\"")
+        sys.stdout.write("echo -e \"\\033[?25l\"")
+    else:
+        sys.stdout.write("\033[1J")     # escape sequence to clear screen
+        sys.stdout.write("\033[?25l")   # hide cursor
+
     old_time = time.time()
     for t in frame_numbers():
         # rotate camera every frame
