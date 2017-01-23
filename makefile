@@ -5,3 +5,4 @@ all:
 clean:
 	rm rice3d.c
 	rm rice3d
+

@@ -81,7 +81,6 @@ draw_dist_min       = 0
 draw_dist_max       = 1
 draw_dist_min_frame = 0
 draw_dist_max_frame = 1
-dither_erorrate     = 0.0
 screen              = [[backgroundchar for w in range(width)] for h in range(height)]
 z_buffer            = [[-999 for x in range(width)] for y in range(height)]
 
@@ -103,13 +102,11 @@ class Camera():
 camera = Camera()               # singleton
 
 def char_from_color(x,y,z):
-    global draw_dist_min,draw_dist_max,dither_erorrate
+    global draw_dist_min,draw_dist_max
     # first we scale z from the doman [draw_dist_min..max] to [0..gradient]
     l =len(args.gradient)
     d = (z - draw_dist_min) / ((draw_dist_max) - draw_dist_min)
     index =int(d*l)
-    # keep global "error-rate", if we are dithering incread the value
-    # of a pixel every now and then
     if args.dithering and index < len(args.gradient) -1:
         error = d*l - int(index)
         # 4x4 bayer matrix dithering
