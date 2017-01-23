@@ -1,4 +1,4 @@
-#!/usr/bin/env pypy3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright (C) 2017  Martijn Terpstra
@@ -28,7 +28,7 @@ import argparse
 
 columns, rows = shutil.get_terminal_size((80, 20))
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(description='Rice3d is a command line application that draws 3d models using text and terminal escape codes.')
 parser.add_argument("-b", "--blockcharacters", help="Use block characters, may not work with all terminals/fonts", action="store_true")
 parser.add_argument("-F", "--framerate",help="Maximum framerate when drawing multiple frames", type=int, default=60)
 parser.add_argument("-f", "--framecount", help="Number of frames to render (ignore in combination with --singleframe)", type=int, default=-1)

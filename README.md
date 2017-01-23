@@ -1,6 +1,7 @@
 # rice3d
 
-Render 3d models in realtime in your terminal using just text.
+Rice3d is a command line application that draws 3d models using text and
+terminal escape codes.
 
 ![Screenshot](256color.png)
 
@@ -19,8 +20,12 @@ Where FILE points to a .obj file. There are example models in the "models" folde
 ```
 usage: rice3d.py [-h] [-b] [-F FRAMERATE] [-f FRAMECOUNT] [-c COLUMNS]
                  [-l LINES] [-s] [-W] [-a ASCPECTRATIO] [-A] [-d] [-t TIME]
+                 [-T] [-R TRUECOLORR] [-G TRUECOLORG] [-B TRUECOLORB]
                  [-u CAMERAU] [-v CAMERAV] [-w CAMERAW] [-g GRADIENT]
                  FILE
+
+Rice3d is a command line application that draws 3d models using text and
+terminal escape codes.
 
 positional arguments:
   FILE                  .obj file to be rendered
@@ -46,6 +51,13 @@ optional arguments:
   -A, --autoscale       Automatically scale lighting to model depth
   -d, --dithering       Dither colors rather than rounding them down
   -t TIME, --time TIME  Time to start animation at
+  -T, --truecolor       Use 24-bit true color output
+  -R TRUECOLORR, --truecolorR TRUECOLORR
+                        Red base value (truecolor)
+  -G TRUECOLORG, --truecolorG TRUECOLORG
+                        Green base value (truecolor)
+  -B TRUECOLORB, --truecolorB TRUECOLORB
+                        Blue base value (truecolor)
   -u CAMERAU, --camerau CAMERAU
                         Camera angle (u)
   -v CAMERAV, --camerav CAMERAV
@@ -56,7 +68,6 @@ optional arguments:
                         string used to generate a character gradient
 ```
 
-
 # Requirments
 
-- pypy3 (can be replaced by python3 with a minor performance cost)
+- Python3
