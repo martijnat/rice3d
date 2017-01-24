@@ -164,7 +164,7 @@ def draw_pixel(_x,_y,z):
 
 def draw_line(x1,y1,x2,y2,c1,c2):
     "For every point visible on the line, draw a pixel"
-    steps = max(abs(x1-x2),abs(y1-y2))
+    steps = max(abs(x1-x2),y1-y2)
     if steps>0:
         for s in range(int(steps+1)):
             r1,r2 = s/steps, (1- s/steps)
