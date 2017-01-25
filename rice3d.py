@@ -206,6 +206,11 @@ def draw_triangle(p1,p2,p3):
                 xcurrent += xstep
                 ccurrent += cstep
 
+
+    if ((p1.x - p3.x)*(p2.y - p3.y) - (p2.x - p3.x)*((p1.y - p3.y))) <= 0:
+        return                  # back face culling
+
+
     # simple bubble sort to order points from low to high
     if p1.y > p2.y:
         p1,p2 = p2,p1
