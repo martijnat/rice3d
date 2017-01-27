@@ -24,6 +24,56 @@ import sys
 import time
 import argparse
 
+def main():
+    model = load_obj(args.FILE,camera)
+    try:
+        if args.script:
+            sys.stdout.write("#!/bin/sh\n")
+            sys.stdout.write("# Script generated with rice3d\n\n\n")
+            sys.stdout.write("echo -e \"\033[1J\"")
+            sys.stdout.write("echo -e \"\\033[?25l\"")
+        else:
+            sys.stdout.write("\033[1J")     # escape sequence to clear screen
+            sys.stdout.write("\033[?25l")   # hide cursor
+
+        old_time = time.time()
+        for t in frame_numbers():
+            # rotate camera every frame
+            camera.u = args.camerau + 2*pi*t* -0.0005
+            camera.v = args.camerav + 2*pi*t* 0.005
+            camera.w = args.cameraw + 2*pi*t* 0.00005
+            # draw all triangles relative to this new camera
+            for _ in model:
+                draw_triangle_relative(_,camera)
+            # fetch output to be draw
+            next_frame = engine_step()
+
+            if args.script:
+                # add special formatting if we are creating a script
+                sys.stdout.write("\ncat << 'EOF'\n")
+                sys.stdout.write(next_frame)
+                sys.stdout.write("\nEOF\n")
+                sys.stdout.write("sleep %f\n"%(1/args.framerate))
+            else:
+                new_time  = time.time()
+                diff_time = new_time-old_time
+                old_time  = new_time
+                sys.stdout.write(next_frame)
+                # wait till the end of the frame
+                if args.framerate > 0:
+                    time.sleep(max(0,(1/args.framerate)-diff_time))
+                else:
+                    # if framerate <= 0, display the same image forever
+                    while True:
+                        time.sleep(10)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        if args.script:
+            sys.stdout.write("\n\necho -e \"\033[?25h\"")   # show cursor again
+        else:
+            sys.stdout.write("\033[?25h")   # show cursor again
+
 columns, rows = shutil.get_terminal_size((80, 20))
 
 parser = argparse.ArgumentParser(description='Rice3d is a command line application that draws 3d models using text and terminal escape codes.')
@@ -326,54 +376,7 @@ def load_obj(filename,camera):
     camera.zoom          = zoomfactor  / (sum([max_x-min_x,max_y-min_y,max_z-min_z])/3)**2
     return faces
 
-model = load_obj(args.FILE,camera)
 
 
-try:
-    if args.script:
-        sys.stdout.write("#!/bin/sh\n")
-        sys.stdout.write("# Script generated with rice3d\n\n\n")
-        sys.stdout.write("echo -e \"\033[1J\"")
-        sys.stdout.write("echo -e \"\\033[?25l\"")
-    else:
-        sys.stdout.write("\033[1J")     # escape sequence to clear screen
-        sys.stdout.write("\033[?25l")   # hide cursor
-
-    old_time = time.time()
-    for t in frame_numbers():
-        # rotate camera every frame
-        camera.u = args.camerau + 2*pi*t* -0.0005
-        camera.v = args.camerav + 2*pi*t* 0.005
-        camera.w = args.cameraw + 2*pi*t* 0.00005
-        # draw all triangles relative to this new camera
-        for _ in model:
-            draw_triangle_relative(_,camera)
-        # fetch output to be draw
-        next_frame = engine_step()
-
-        if args.script:
-            # add special formatting if we are creating a script
-            sys.stdout.write("\ncat << 'EOF'\n")
-            sys.stdout.write(next_frame)
-            sys.stdout.write("\nEOF\n")
-            sys.stdout.write("sleep %f\n"%(1/args.framerate))
-        else:
-            new_time  = time.time()
-            diff_time = new_time-old_time
-            old_time  = new_time
-            sys.stdout.write(next_frame)
-            # wait till the end of the frame
-            if args.framerate > 0:
-                time.sleep(max(0,(1/args.framerate)-diff_time))
-            else:
-                # if framerate <= 0, display the same image forever
-                while True:
-                    time.sleep(10)
-
-except KeyboardInterrupt:
-    pass
-finally:
-    if args.script:
-        sys.stdout.write("\n\necho -e \"\033[?25h\"")   # show cursor again
-    else:
-        sys.stdout.write("\033[?25h")   # show cursor again
+if __name__ == "__main__":
+    main()
