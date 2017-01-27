@@ -26,17 +26,9 @@ import argparse
 
 def main():
     model = load_obj(args.FILE,camera)
+    old_time = time.time()
+    init_display()
     try:
-        if args.script:
-            sys.stdout.write("#!/bin/sh\n")
-            sys.stdout.write("# Script generated with rice3d\n\n\n")
-            sys.stdout.write("echo -e \"\033[1J\"")
-            sys.stdout.write("echo -e \"\\033[?25l\"")
-        else:
-            sys.stdout.write("\033[1J")     # escape sequence to clear screen
-            sys.stdout.write("\033[?25l")   # hide cursor
-
-        old_time = time.time()
         for t in frame_numbers():
             # rotate camera every frame
             camera.u = args.camerau + 2*pi*t* -0.0005
@@ -69,10 +61,22 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
-        if args.script:
-            sys.stdout.write("\n\necho -e \"\033[?25h\"")   # show cursor again
-        else:
-            sys.stdout.write("\033[?25h")   # show cursor again
+        cleanup()
+
+def init_display():
+    if args.script:
+        sys.stdout.write("#!/bin/sh\n")
+        sys.stdout.write("# Script generated with rice3d\n\n\n")
+        sys.stdout.write("echo -e \"\033[1J\"")
+        sys.stdout.write("echo -e \"\\033[?25l\"")
+    else:
+        sys.stdout.write("\033[1J")     # escape sequence to clear screen
+        sys.stdout.write("\033[?25l")   # hide cursor
+
+
+def cleanup():
+    sys.stdout.write("\n\necho -e \"\033[?25h\"" if args.script else "\033[?25h")
+
 
 columns, rows = shutil.get_terminal_size((80, 20))
 
