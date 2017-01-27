@@ -16,10 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from math import sin,cos,atan,atan2,sqrt
-from math import sin,cos,pi
+from math import sin,cos,pi,atan,atan2,sqrt
 
-import math
 import os
 import shutil
 import sys
@@ -318,9 +316,9 @@ def load_obj(filename,camera):
     camera.z = (max_z + min_z) / 2
 
     # Pythagorean theorem
-    max_dist_from_center = math.sqrt((max_x-min_x)**2 +
-                                  (max_y-min_y)**2 +
-                                  (max_z-min_z)**2)
+    max_dist_from_center = sqrt((max_x-min_x)**2 +
+                             (max_y-min_y)**2 +
+                             (max_z-min_z)**2)
     draw_dist_min        = min_z
     draw_dist_max        = max_z
     draw_dist_min_frame  = min_z
