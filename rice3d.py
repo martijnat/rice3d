@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from math import sin,cos,pi,atan,atan2,sqrt
+from math import sin,cos,pi
 
 import os
 import shutil
@@ -26,38 +26,11 @@ import argparse
 
 def main():
     model = load_obj(args.FILE,camera)
-    old_time = time.time()
+    current_time = time.time()
     init_display()
     try:
         for t in frame_numbers():
-            # rotate camera every frame
-            camera.u = args.camerau + 2*pi*t* -0.0005
-            camera.v = args.camerav + 2*pi*t* 0.005
-            camera.w = args.cameraw + 2*pi*t* 0.00005
-            # draw all triangles relative to this new camera
-            for _ in model:
-                draw_triangle_relative(_,camera)
-            # fetch output to be draw
-            next_frame = engine_step()
-
-            if args.script:
-                # add special formatting if we are creating a script
-                sys.stdout.write("\ncat << 'EOF'\n")
-                sys.stdout.write(next_frame)
-                sys.stdout.write("\nEOF\n")
-                sys.stdout.write("sleep %f\n"%(1/args.framerate))
-            else:
-                new_time  = time.time()
-                diff_time = new_time-old_time
-                old_time  = new_time
-                sys.stdout.write(next_frame)
-                # wait till the end of the frame
-                if args.framerate > 0:
-                    time.sleep(max(0,(1/args.framerate)-diff_time))
-                else:
-                    # if framerate <= 0, display the same image forever
-                    while True:
-                        time.sleep(10)
+            draw_frame(model,current_time,t)
     except KeyboardInterrupt:
         pass
     finally:
@@ -73,6 +46,35 @@ def init_display():
         sys.stdout.write("\033[1J")     # escape sequence to clear screen
         sys.stdout.write("\033[?25l")   # hide cursor
 
+def draw_frame(model,old_time,t):
+    # rotate camera every frame
+    camera.u = args.camerau + 2*pi*t* -0.0005
+    camera.v = args.camerav + 2*pi*t* 0.005
+    camera.w = args.cameraw + 2*pi*t* 0.00005
+    # draw all triangles relative to this new camera
+    for _ in model:
+        draw_triangle_relative(_,camera)
+    # fetch output to be draw
+    next_frame = engine_step()
+
+    if args.script:
+        # add special formatting if we are creating a script
+        sys.stdout.write("\ncat << 'EOF'\n")
+        sys.stdout.write(next_frame)
+        sys.stdout.write("\nEOF\n")
+        sys.stdout.write("sleep %f\n"%(1/args.framerate))
+    else:
+        new_time  = time.time()
+        diff_time = new_time-old_time
+        old_time  = new_time
+        sys.stdout.write(next_frame)
+        # wait till the end of the frame
+        if args.framerate > 0:
+            time.sleep(max(0,(1/args.framerate)-diff_time))
+        else:
+            # if framerate <= 0, display the same image forever
+            while True:
+                time.sleep(10)
 
 def cleanup():
     sys.stdout.write("\n\necho -e \"\033[?25h\"" if args.script else "\033[?25h")
@@ -300,8 +302,8 @@ def engine_step():
         draw_dist_max = draw_dist_max_frame
         draw_dist_min = draw_dist_min_frame
         draw_dist_max_frame,draw_dist_min_frame =\
-                                                  draw_dist_max_frame * 0.9 + draw_dist_min_frame * 0.1,\
-                                                  draw_dist_min_frame * 0.9 + draw_dist_max_frame * 0.1
+                                                  draw_dist_max_frame * 0.99 + draw_dist_min_frame * 0.01,\
+                                                  draw_dist_min_frame * 0.99 + draw_dist_max_frame * 0.01
         camera.zoom = zoomfactor  / ((draw_dist_max-draw_dist_min)**2)
     return "\033[0;0H"+p
 
@@ -318,7 +320,6 @@ def frame_numbers(n=0):
 def load_obj(filename,camera):
     "Parse an .obj file and return an array of Triangles"
     global draw_dist_min,draw_dist_max,zoomfactor
-    obj_file = open(filename)
     vertices,faces = [],[]
     # each line represents 1 thing, we care only about
     # vertices(points) and faces(triangles)
@@ -369,18 +370,12 @@ def load_obj(filename,camera):
     camera.y = (max_y + min_y) / 2
     camera.z = (max_z + min_z) / 2
 
-    # Pythagorean theorem
-    max_dist_from_center = sqrt((max_x-min_x)**2 +
-                             (max_y-min_y)**2 +
-                             (max_z-min_z)**2)
     draw_dist_min        = min_z
     draw_dist_max        = max_z
     draw_dist_min_frame  = min_z
     draw_dist_max_frame  = max_z
     camera.zoom          = zoomfactor  / (sum([max_x-min_x,max_y-min_y,max_z-min_z])/3)**2
     return faces
-
-
 
 if __name__ == "__main__":
     main()
